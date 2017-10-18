@@ -1,1 +1,1 @@
-fusermount -u /mnt/mounted_bucket
+fusermount -z -u /mnt/mounted_bucket
