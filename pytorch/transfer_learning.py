@@ -34,6 +34,7 @@ These two major transfer learning scenarios looks as follows:
 
 from __future__ import print_function, division
 
+import argparse
 from scipy.stats import pearsonr
 import torch
 import torch.nn as nn
@@ -239,8 +240,14 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 
 
 def main():
+    main_arg_parser = argparse.ArgumentParser(description="parser for transfer-learning")
 
+    main_arg_parser.add_argument("--epochs", type=int, default=25,
+                                  help="number of training epochs, default is 25")
+    main_arg_parser.add_argument("--fine-tune", type=bool, default=True,
+                                  help="fine tune full network if true, otherwise just FC layer")
 
+    args = main_arg_parser.parse_args()
     """
     Only in ipynb can we visualize.
 
@@ -273,10 +280,10 @@ def main():
     # You can read more about this in the documentation
     # `here <http://pytorch.org/docs/notes/autograd.html#excluding-subgraphs-from-backward>`__.
     #
-    """
-    for param in model_conv.parameters():
-        param.requires_grad = False
-    """
+    if args.fine_tune:
+        for param in model_conv.parameters():
+            param.requires_grad = False
+
     # Parameters of newly constructed modules have requires_grad=True by default
     num_ftrs = model_conv.fc.in_features
 
@@ -291,9 +298,7 @@ def main():
 
     optimizer_conv = Adam(model_conv.parameters(), 1e-3)
     """
-    # Observe that only parameters of final layer are being optimized as
-    # opoosed to before.
-    optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
+    optimizer_conv = optim.SGD(params, lr=0.001, momentum=0.9)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
@@ -317,7 +322,7 @@ def main():
     # network. However, forward does need to be computed.
     #
 
-    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=25)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=args.epochs)
 
     ######################################################################
     #
