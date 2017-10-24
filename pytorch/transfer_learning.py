@@ -179,7 +179,7 @@ def train_model(model, criterion, optimizer, num_epochs=25):
                 # wrap them in Variable
                 if use_gpu:
                     inputs = Variable(inputs.cuda())
-                    labels = Variable(labels.cuda())
+                    labels = Variable(labels.float().cuda())
                 else:
                     inputs, labels = Variable(inputs), Variable(labels.float())
 
@@ -191,7 +191,7 @@ def train_model(model, criterion, optimizer, num_epochs=25):
                 preds = outputs.data
                 loss = criterion(outputs, labels)
 
-                y_pred += preds.squeeze().numpy().tolist()
+                y_pred += preds.squeeze().cpu().numpy().tolist()
 
                 # backward + optimize only if in training phase
                 if phase == 'train':
@@ -215,7 +215,11 @@ def train_model(model, criterion, optimizer, num_epochs=25):
             # deep copy the model
             if phase == 'val' and epoch_ro > best_r2:
                 best_r2 = epoch_ro
+                if use_gpu:
+                    model.cpu()
                 best_model_wts = model.state_dict()
+                if use_gpu:
+                    model.cuda()
 
         print()
 
@@ -269,10 +273,10 @@ def main():
     # You can read more about this in the documentation
     # `here <http://pytorch.org/docs/notes/autograd.html#excluding-subgraphs-from-backward>`__.
     #
-
+    """
     for param in model_conv.parameters():
         param.requires_grad = False
-
+    """
     # Parameters of newly constructed modules have requires_grad=True by default
     num_ftrs = model_conv.fc.in_features
 
@@ -285,7 +289,7 @@ def main():
     criterion = nn.MSELoss()
 
 
-    optimizer_conv = Adam(model_conv.fc.parameters(), 1e-3)
+    optimizer_conv = Adam(model_conv.parameters(), 1e-3)
     """
     # Observe that only parameters of final layer are being optimized as
     # opoosed to before.
@@ -313,7 +317,7 @@ def main():
     # network. However, forward does need to be computed.
     #
 
-    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=2)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=25)
 
     ######################################################################
     #
