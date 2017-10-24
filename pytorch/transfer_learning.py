@@ -38,7 +38,8 @@ from __future__ import print_function, division
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim import lr_scheduler
+# from torch.optim import lr_scheduler
+from torch.optim import Adam
 from torch.autograd import Variable
 import numpy as np
 import torchvision
@@ -104,11 +105,11 @@ data_transforms = {
 }
 
 # TODO: put data here
-train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train2/'
-val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train2/'
+train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
+val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 
-train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train.csv'
-val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid.csv'
+train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train_fake.csv'
+val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid_fake.csv'
 
 
 train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
@@ -160,7 +161,7 @@ imshow(out, title=[class_names[x] for x in classes])
 # ``torch.optim.lr_scheduler``.
 
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+def train_model(model, criterion, optimizer, num_epochs=25):
     since = time.time()
 
     best_model_wts = model.state_dict()
@@ -173,7 +174,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                scheduler.step()
+                #scheduler.step()
                 model.train(True)  # Set model to training mode
             else:
                 model.train(False)  # Set model to evaluate mode
@@ -273,13 +274,16 @@ def main():
 
     criterion = nn.MSELoss()
 
+
+    optimizer_conv = Adam(model_conv.parameters(), 1e-3)
+    """
     # Observe that only parameters of final layer are being optimized as
     # opoosed to before.
     optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
-
+    """
 
     ######################################################################
     # Train and evaluate
@@ -299,8 +303,7 @@ def main():
     # network. However, forward does need to be computed.
     #
 
-    model_conv = train_model(model_conv, criterion, optimizer_conv,
-                             exp_lr_scheduler, num_epochs=25)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=2)
 
     ######################################################################
     #
