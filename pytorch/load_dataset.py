@@ -2,15 +2,23 @@ from __future__ import print_function, division
 import os
 import torch
 import pandas as pd
-from skimage import io, transform
+from skimage import io #, transform
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 
+# from https://discuss.pytorch.org/t/load-tiff-images-to-dataset/8593/3
+from torchvision.datasets import ImageFolder
+from torchvision.datasets.folder import IMG_EXTENSIONS
+IMG_EXTENSIONS.append('tiff')
+
 # Ignore warnings
 # import warnings
 # warnings.filterwarnings("ignore")
+
+
+
 
 
 class BangladeshDataset(Dataset):
@@ -33,10 +41,12 @@ class BangladeshDataset(Dataset):
 
     def __getitem__(self, idx):
         # TODO: make sure 0th index is jpeg file
-        img_name = os.path.join(self.root_dir, self.households.ix[idx, 0])
+        hhid = self.households["a01"][idx]
+        hhid = str(hhid).replace('.', '-')
+        img_name = os.path.join(self.root_dir, hhid + '.jpg')
         image = io.imread(img_name)
         # TODO: set expenditure index
-        expenditure = self.households.ix[idx, 1:].as_matrix().astype('float')
+        expenditure = self.households["totexp_m"][idx]
         sample = {'image': image, 'expenditure': expenditure}
 
         if self.transform:

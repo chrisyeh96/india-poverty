@@ -72,7 +72,9 @@ plt.ion()   # interactive mode
 
 # Data augmentation and normalization for training
 # Just normalization for validation
-# TODO: probably want just center crop for training set
+"""
+PyTorch transfer learning tutorial transforms
+==================================
 data_transforms = {
     'train': transforms.Compose([
         transforms.RandomSizedCrop(224),
@@ -87,12 +89,37 @@ data_transforms = {
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
 }
+"""
+data_transforms = {
+    'train': transforms.Compose([
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ]),
+    'val': transforms.Compose([
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ]),
+}
 
 # TODO: put data here
-data_dir = '/mnt/mounted_bucket/bangladesh_data'
-image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-                                          data_transforms[x])
-                  for x in ['train', 'val']}
+train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train2/'
+val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train2/'
+
+train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train.csv'
+val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid.csv'
+
+
+train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
+                                           root_dir=train_data_dir,
+                                           transform=data_transforms['train'])
+val_dataset = BangladeshDataset(csv_file=val_bangladesh_csv_path,
+                                           root_dir=val_data_dir,
+                                           transform=data_transforms['val'])
+
+image_datasets = {'train': train_dataset, 'val': val_dataset}
+
 dataloders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
                                              shuffle=True, num_workers=4)
               for x in ['train', 'val']}
