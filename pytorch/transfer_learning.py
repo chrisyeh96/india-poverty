@@ -259,7 +259,6 @@ def main():
 
     imshow(out, title=[class_names[x] for x in classes])
     """    
-    
 
     ######################################################################
     # Finetuning the convnet
@@ -280,7 +279,7 @@ def main():
     # You can read more about this in the documentation
     # `here <http://pytorch.org/docs/notes/autograd.html#excluding-subgraphs-from-backward>`__.
     #
-    if args.fine_tune:
+    if not args.fine_tune:
         for param in model_conv.parameters():
             param.requires_grad = False
 
@@ -295,7 +294,7 @@ def main():
 
     criterion = nn.MSELoss()
 
-
+    params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
     optimizer_conv = Adam(model_conv.parameters(), 1e-3)
     """
     optimizer_conv = optim.SGD(params, lr=0.001, momentum=0.9)
