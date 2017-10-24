@@ -29,17 +29,17 @@ def visualize_model(model, dataloders, use_gpu, num_images=6):
         if use_gpu:
             inputs, labels = Variable(inputs.cuda()), Variable(labels.cuda())
         else:
-            inputs, labels = Variable(inputs), Variable(labels)
+            inputs, labels = Variable(inputs), Variable(labels.float())
 
         outputs = model(inputs)
-        _, preds = torch.max(outputs.data, 1)
+        preds = outputs.data
 
         for j in range(inputs.size()[0]):
             images_so_far += 1
             ax = plt.subplot(num_images//2, 2, images_so_far)
             ax.axis('off')
-            ax.set_title('predicted: {}'.format(class_names[preds[j]]))
-            imshow(inputs.cpu().data[j])
+            #ax.set_title('predicted: {}'.format(preds[j]))
+            torch_to_im_show(inputs.cpu().data[j])
 
             if images_so_far == num_images:
                 return
