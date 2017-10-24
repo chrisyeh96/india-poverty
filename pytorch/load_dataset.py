@@ -7,11 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
+from PIL import Image
 
 # from https://discuss.pytorch.org/t/load-tiff-images-to-dataset/8593/3
-from torchvision.datasets import ImageFolder
-from torchvision.datasets.folder import IMG_EXTENSIONS
-IMG_EXTENSIONS.append('tiff')
+#from torchvision.datasets import ImageFolder
+#from torchvision.datasets.folder import IMG_EXTENSIONS
+#IMG_EXTENSIONS.append('tiff')
 
 # Ignore warnings
 # import warnings
@@ -24,7 +25,7 @@ IMG_EXTENSIONS.append('tiff')
 class BangladeshDataset(Dataset):
     """Bangladesh Poverty dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None):
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -35,6 +36,7 @@ class BangladeshDataset(Dataset):
         self.households = pd.read_csv(csv_file)
         self.root_dir = root_dir
         self.transform = transform
+        self.target_transform = target_transform
 
     def __len__(self):
         return len(self.households)
@@ -44,12 +46,15 @@ class BangladeshDataset(Dataset):
         hhid = self.households["a01"][idx]
         hhid = str(hhid).replace('.', '-')
         img_name = os.path.join(self.root_dir, hhid + '.jpg')
-        image = io.imread(img_name)
+        image = Image.open(img_name)
+        #image = io.imread(img_name)
         # TODO: set expenditure index
         expenditure = self.households["totexp_m"][idx]
-        sample = {'image': image, 'expenditure': expenditure}
+        
 
         if self.transform:
-            sample['image'] = self.transform(sample['image'])
+            image = self.transform(image)
+        if self.target_transform:
+            expenditure = self.target_transform(expenditure)
 
-        return sample
+        return image, expenditure

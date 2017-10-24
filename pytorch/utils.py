@@ -52,7 +52,7 @@ def visualize_model(model, dataloders, use_gpu, num_images=6):
 # Let's visualize a few training images so as to understand the data
 # augmentations.
 
-def imshow(inp, title=None):
+def torch_to_im_show(inp, title=None):
     """Imshow for Tensor."""
     inp = inp.numpy().transpose((1, 2, 0))
     mean = np.array([0.485, 0.456, 0.406])
