@@ -50,6 +50,6 @@ class BangladeshDataset(Dataset):
         sample = {'image': image, 'expenditure': expenditure}
 
         if self.transform:
-            sample = self.transform(sample)
+            sample['image'] = self.transform(sample['image'])
 
         return sample
