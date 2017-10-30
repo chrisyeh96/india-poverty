@@ -149,6 +149,8 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 
     best_model_wts = model.state_dict()
     best_r2 = 0.0
+    best_y_pred = []
+    best_y_true = []
 
     losses = {'train': [], 'val': []}
     r2s = {'train': [], 'val': []}
@@ -205,6 +207,7 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_ro, epoch_p = pearsonr(y_pred, y_true)
+            epoch_ro = epoch_ro ** 2
             #epoch_acc = running_corrects / dataset_sizes[phase]
 
             losses[phase].append(epoch_loss)
@@ -216,6 +219,8 @@ def train_model(model, criterion, optimizer, num_epochs=25):
             # deep copy the model
             if phase == 'val' and epoch_ro > best_r2:
                 best_r2 = epoch_ro
+                best_y_pred = y_pred
+                best_y_true = y_true
                 if use_gpu:
                     model.cpu()
                 best_model_wts = model.state_dict()
@@ -230,6 +235,8 @@ def train_model(model, criterion, optimizer, num_epochs=25):
     print(losses)
     print(r2s)
     print('Best R2: {:4f}'.format(best_r2))
+    print(best_y_pred)
+    print(best_y_true)
 
     # load best model weights
     model.load_state_dict(best_model_wts)
