@@ -213,7 +213,7 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
                 running_loss += loss.data[0]
                 #running_corrects += torch.sum(preds == labels.data)
 
-            epoch_loss = running_loss / dataset_sizes[phase]
+            epoch_loss = running_loss / (dataset_sizes[phase] / 4)
             epoch_ro, epoch_p = pearsonr(y_pred, y_true)
             epoch_ro = epoch_ro ** 2
             #epoch_acc = running_corrects / dataset_sizes[phase]
