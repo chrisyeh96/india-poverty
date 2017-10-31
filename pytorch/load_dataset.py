@@ -53,14 +53,16 @@ class BangladeshDataset(Dataset):
         hhid = self.households["a01"][idx]
         prefix = "l8"
         imgtype = "vis"
-        # numpy array
-        img = load_bangladesh_2015_tiff(hhid, prefix, imgtype)
+        # numpy array, image.shape = (3, 500, 500)
+        image = load_bangladesh_2015_tiff(self.root_dir, hhid, prefix, imgtype)
+        # transpose makes shape image.shape = (500, 500, 3)
+        image = Image.fromarray(image.transpose((1, 2, 0)))
         #hhid = str(hhid).replace('.', '-')
         # TODO: should transform to PIL image?
         #image = Image.open(img_name)
         # TODO: set expenditure index
         expenditure = self.households["totexp_m"][idx]
-
+        
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
