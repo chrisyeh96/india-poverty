@@ -118,8 +118,8 @@ val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 train_data_dir = '/mnt/mounted_bucket'
 val_data_dir = '/mnt/mounted_bucket'
 
-train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train.csv'
-val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid.csv'
+train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
+val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
 
 
 train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
@@ -255,7 +255,7 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 def main():
     main_arg_parser = argparse.ArgumentParser(description="parser for transfer-learning")
 
-    main_arg_parser.add_argument("--epochs", type=int, default=25,
+    main_arg_parser.add_argument("--epochs", type=int, default=1,
                                   help="number of training epochs, default is 25")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=True,
                                   help="fine tune full network if true, otherwise just FC layer")
