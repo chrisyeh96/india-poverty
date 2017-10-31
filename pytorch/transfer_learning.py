@@ -115,8 +115,8 @@ For jpegs
 train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 """
-train_data_dir = '/mnt/staff-bucket/'
-val_data_dir = '/mnt/staff-bucket/'
+train_data_dir = '/mnt/mounted_bucket'
+val_data_dir = '/mnt/mounted_bucket'
 
 train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train.csv'
 val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid.csv'
