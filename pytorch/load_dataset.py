@@ -40,7 +40,7 @@ class BangladeshDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         bucket_files = open("../data/bucket_files.txt", "r").readlines()
-        bucket_files = [q.split("/")[-1].strip() for q in all_files]
+        bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
         exists = households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format("l8", "bangladesh", "vis", z) in bucket_files)
         nonzero_exp = households["totexp_m"] > 0
         self.households = self.households[np.logical_and(exists, nonzero_exp)]
