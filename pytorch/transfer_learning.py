@@ -93,7 +93,9 @@ data_transforms = {
     ]),
 }
 """
+
 use_gpu = torch.cuda.is_available()
+print("Use gpu: " + str(use_gpu))
 
 data_transforms = {
     'train': transforms.Compose([
@@ -115,8 +117,8 @@ For jpegs
 train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 """
-train_data_dir = '/mnt/mounted_bucket'
-val_data_dir = '/mnt/mounted_bucket'
+train_data_dir = '/home/echartock03/tiffs'
+val_data_dir = '/home/echartock03/tiffs'
 
 train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
 val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
@@ -150,7 +152,7 @@ dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 # ``torch.optim.lr_scheduler``.
 
 
-def train_model(model, criterion, optimizer, num_epochs=25):
+def train_model(model, criterion, optimizer, args, num_epochs=25):
     since = time.time()
 
     best_model_wts = model.state_dict()
@@ -163,6 +165,7 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print(time.ctime())
         print('-' * 10)
 
         y_true = []
@@ -177,7 +180,6 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 
             running_loss = 0.0
             # running_corrects = 0
-
             # Iterate over data.
             for data in dataloders[phase]:
                 # get the inputs
@@ -241,8 +243,10 @@ def train_model(model, criterion, optimizer, num_epochs=25):
     print(losses)
     print(r2s)
     print('Best R2: {:4f}'.format(best_r2))
-    print(best_y_pred)
-    print(best_y_true)
+    y_pred_filename = "/home/echartock03/models/epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ypred" + ".npy"
+    y_true_filename = "/home/echartock03/models/epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ytrue" + ".npy"
+    np.save(y_pred_filename, best_y_pred)
+    np.save(y_true_filename, best_y_true)
 
     # load best model weights
     model.load_state_dict(best_model_wts)
@@ -257,7 +261,7 @@ def main():
 
     main_arg_parser.add_argument("--epochs", type=int, default=1,
                                   help="number of training epochs, default is 25")
-    main_arg_parser.add_argument("--fine-tune", type=bool, default=True,
+    main_arg_parser.add_argument("--fine-tune", type=bool, default=False,
                                   help="fine tune full network if true, otherwise just FC layer")
     main_arg_parser.add_argument("--save-model-dir", type=str, default="/home/echartock03/models",
                                   help="save best trained model in this directory")
@@ -268,6 +272,8 @@ def main():
     print("Train for {} epochs.".format(args.epochs))
     print("Fine tune full network: " + str(args.fine_tune))
     print("Save best model in " + args.save_model_dir)
+    save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
+    print(save_model_filename)
     print("====================================")
     print
 
@@ -318,7 +324,7 @@ def main():
     criterion = nn.MSELoss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
-    optimizer_conv = Adam(model_conv.parameters(), 1e-3)
+    optimizer_conv = Adam(params, 1e-3)
     """
     optimizer_conv = optim.SGD(params, lr=0.001, momentum=0.9)
 
@@ -344,7 +350,7 @@ def main():
     # network. However, forward does need to be computed.
     #
 
-    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=args.epochs)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, args, num_epochs=args.epochs)
 
     save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
     save_model_path = os.path.join(args.save_model_dir, save_model_filename)

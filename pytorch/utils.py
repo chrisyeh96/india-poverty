@@ -33,7 +33,7 @@ gdal.SetCacheMax(2**30) # 1 GB
 #   - gdal_tif: numpy array corresponding to gdal tif
 #
 
-def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=False):
+def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=True):
     """
     hhid:    household index as float [pull from bangladesh_2015 csv]
     prefix:  either "s1" or "l8"
