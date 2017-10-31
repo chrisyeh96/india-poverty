@@ -8,11 +8,13 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image
+from utils import load_bangladesh_2015_tiff
 
 # from https://discuss.pytorch.org/t/load-tiff-images-to-dataset/8593/3
-#from torchvision.datasets import ImageFolder
-#from torchvision.datasets.folder import IMG_EXTENSIONS
-#IMG_EXTENSIONS.append('tiff')
+from torchvision.datasets import ImageFolder
+from torchvision.datasets.folder import IMG_EXTENSIONS
+IMG_EXTENSIONS.append('tiff')
+IMG_EXTENSIONS.append('tif')
 
 # Ignore warnings
 # import warnings
@@ -41,6 +43,35 @@ class BangladeshDataset(Dataset):
     def __len__(self):
         return len(self.households)
 
+
+    """
+    for jpegs in file
+    ---------------------------------------------
+    """
+    def __getitem__(self, idx):
+        # TODO: make sure 0th index is jpeg file
+        hhid = self.households["a01"][idx]
+        prefix = "l8"
+        imgtype = "vis"
+        # numpy array
+        img = load_bangladesh_2015_tiff(hhid, prefix, imgtype)
+        #hhid = str(hhid).replace('.', '-')
+        # TODO: should transform to PIL image?
+        #image = Image.open(img_name)
+        # TODO: set expenditure index
+        expenditure = self.households["totexp_m"][idx]
+
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            expenditure = self.target_transform(expenditure)
+
+        return image, expenditure
+
+
+    """
+    for jpegs in file
+    ---------------------------------------------
     def __getitem__(self, idx):
         # TODO: make sure 0th index is jpeg file
         hhid = self.households["a01"][idx]
@@ -58,3 +89,4 @@ class BangladeshDataset(Dataset):
             expenditure = self.target_transform(expenditure)
 
         return image, expenditure
+    """

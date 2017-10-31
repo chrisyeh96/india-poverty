@@ -7,10 +7,44 @@ from torch.optim import lr_scheduler
 from torch.autograd import Variable
 import numpy as np
 import torchvision
+from geotiling import GeoProps
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
 import os
+
+gdal.SetCacheMax(2**30) # 1 GB
+
+######################################################################
+# Load tif from hhid as numpy array. 
+# This helper function is specific to 2015 Bangladesh tifs
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# E.g. l8_median_bangladesh_vis_500x500_1000.0.tif
+# E.g. s1_median_bangladesh_vis_500x500_1000.0.tif
+#
+# Parameters:
+#   - hhid: household id. Float
+#   - prefix: "s1" or "l8" corresponding to Sentinel-1 or Landsat8. String
+#   - imgtype: "vis" or "multiband". String
+#   - quiet: 
+#
+# Returns:
+#   - gdal_tif: numpy array corresponding to gdal tif
+#
+
+def load_bangladesh_2015_tiff(hhid, prefix="s1", imgtype="vis", quiet=False):
+    """
+    hhid:    household index as float [pull from bangladesh_2015 csv]
+    prefix:  either "s1" or "l8"
+    imgtype: either "vis" or "multiband"
+    """
+    source_tiff = "/mnt/staff-bucket/{}_median_bangladesh_{}_500x500_{:.1f}.tif".format(prefix, imgtype, hhid)
+    if not quiet:
+        print("Loading {}...".format(source_tiff))
+    gdal_tif = gdal.Open(source_tiff)
+    if gdal_tif is None:
+        return None
+    return gdal_tif.ReadAsArray().astype("uint8")
 
 
 ######################################################################

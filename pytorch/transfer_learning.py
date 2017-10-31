@@ -109,11 +109,17 @@ data_transforms = {
 }
 
 # TODO: put data here
+"""
+For jpegs
+-------------------
 train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
+"""
+train_data_dir = '/mnt/staff-bucket/'
+val_data_dir = '/mnt/staff-bucket/'
 
-train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train_fake.csv'
-val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid_fake.csv'
+train_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_train.csv'
+val_bangladesh_csv_path = '/home/echartock03/predicting-poverty/data/bangladesh_2015_valid.csv'
 
 
 train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
@@ -253,8 +259,18 @@ def main():
                                   help="number of training epochs, default is 25")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=True,
                                   help="fine tune full network if true, otherwise just FC layer")
+    main_arg_parser.add_argument("--save-model-dir", type=str, default="/home/echartock03/models",
+                                  help="save best trained model in this directory")
+
 
     args = main_arg_parser.parse_args()
+    print("Begin training")
+    print("Train for {} epochs.".format(args.epochs))
+    print("Fine tune full network: " + str(args.fine_tune))
+    print("Save best model in " + args.save_model_dir)
+    print("====================================")
+    print
+
     """
     Only in ipynb can we visualize.
 
@@ -329,6 +345,10 @@ def main():
     #
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=args.epochs)
+
+    save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
+    save_model_path = os.path.join(args.save_model_dir, save_model_filename)
+    torch.save(model_conv.state_dict(), save_model_path)
 
     ######################################################################
     #
