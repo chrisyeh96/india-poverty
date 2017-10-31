@@ -12,6 +12,7 @@ from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
 import os
+import gdal
 
 gdal.SetCacheMax(2**30) # 1 GB
 
