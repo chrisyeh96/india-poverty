@@ -94,6 +94,7 @@ data_transforms = {
 }
 """
 use_gpu = torch.cuda.is_available()
+print("Using GPU:", use_gpu)
 
 data_transforms = {
     'train': transforms.Compose([
@@ -112,8 +113,8 @@ data_transforms = {
 """
 For jpegs
 -------------------
-train_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
-val_data_dir = '/home/echartock03/data/bangladesh_vis_jpgs/train/'
+train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
+val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 """
 train_data_dir = '/mnt/mounted_bucket'
 val_data_dir = '/mnt/mounted_bucket'
@@ -124,15 +125,17 @@ val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
 
 train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
                                            root_dir=train_data_dir,
-                                           transform=data_transforms['train'])
+                                           transform=data_transforms['train'],
+                                           sat_type="s1")
 val_dataset = BangladeshDataset(csv_file=val_bangladesh_csv_path,
                                            root_dir=val_data_dir,
-                                           transform=data_transforms['val'])
+                                           transform=data_transforms['val'],
+                                           sat_type="s1")
 
 image_datasets = {'train': train_dataset, 'val': val_dataset}
 
-dataloders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
-                                             shuffle=True, num_workers=4)
+dataloders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=32,
+                                             shuffle=True, num_workers=8)
               for x in ['train', 'val']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 
@@ -150,7 +153,7 @@ dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 # ``torch.optim.lr_scheduler``.
 
 
-def train_model(model, criterion, optimizer, num_epochs=25):
+def train_model(model, criterion, optimizer, num_epochs=10):
     since = time.time()
 
     best_model_wts = model.state_dict()
@@ -179,7 +182,7 @@ def train_model(model, criterion, optimizer, num_epochs=25):
             # running_corrects = 0
 
             # Iterate over data.
-            for data in dataloders[phase]:
+            for i, data in enumerate(dataloders[phase]):
                 # get the inputs
                 inputs, labels = data
 
@@ -206,6 +209,8 @@ def train_model(model, criterion, optimizer, num_epochs=25):
                 if phase == 'train':
                     loss.backward()
                     optimizer.step()
+
+                print("Batch", i, "Loss:", loss.data[0])
 
                 # statistics
                 running_loss += loss.data[0]
@@ -238,28 +243,29 @@ def train_model(model, criterion, optimizer, num_epochs=25):
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
     time_elapsed // 60, time_elapsed % 60))
-    print(losses)
-    print(r2s)
     print('Best R2: {:4f}'.format(best_r2))
     print(best_y_pred)
     print(best_y_true)
+
+    # save losses and r2s
+    for k, v in losses.items():
+        np.save("./losses_{}.npy".format(k), np.array(v))
+    for k, v in r2s.items():
+        np.save("./r2s_{}.npy".format(k), np.array(v))
 
     # load best model weights
     model.load_state_dict(best_model_wts)
     return model
 
 
-
-
-
 def main():
     main_arg_parser = argparse.ArgumentParser(description="parser for transfer-learning")
 
-    main_arg_parser.add_argument("--epochs", type=int, default=1,
-                                  help="number of training epochs, default is 25")
+    main_arg_parser.add_argument("--epochs", type=int, default=16,
+                                  help="number of training epochs, default is 16")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=True,
                                   help="fine tune full network if true, otherwise just FC layer")
-    main_arg_parser.add_argument("--save-model-dir", type=str, default="/home/echartock03/models",
+    main_arg_parser.add_argument("--save-model-dir", type=str, default="~/models",
                                   help="save best trained model in this directory")
 
 
