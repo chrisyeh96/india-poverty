@@ -27,7 +27,7 @@ IMG_EXTENSIONS.append('tif')
 class BangladeshDataset(Dataset):
     """Bangladesh Poverty dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None, target_transform=None):
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8"):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -39,9 +39,10 @@ class BangladeshDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.target_transform = target_transform
+        self.sat_type = sat_type
         bucket_files = open("../data/bucket_files.txt", "r").readlines()
         bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
-        exists = self.households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format("l8", "bangladesh", "vis", z) in bucket_files)
+        exists = self.households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format(sat_type, "bangladesh", "vis", z) in bucket_files)
         nonzero_exp = self.households["totexp_m"] > 0
         self.households = self.households[np.logical_and(exists, nonzero_exp)]
         self.households = self.households.reset_index()
@@ -57,10 +58,10 @@ class BangladeshDataset(Dataset):
     def __getitem__(self, idx):
         # TODO: make sure 0th index is jpeg file
         hhid = self.households["a01"][idx]
-        prefix = "l8"
+        prefix = self.sat_type
         imgtype = "vis"
         # numpy array, image.shape = (3, 500, 500)
-        image = load_bangladesh_2015_tiff(self.root_dir, hhid, prefix, imgtype)
+        image = load_bangladesh_2015_tiff(self.root_dir, hhid, prefix, imgtype, quiet=True)
         # transpose makes shape image.shape = (500, 500, 3)
         image = Image.fromarray(image.transpose((1, 2, 0)))
         #hhid = str(hhid).replace('.', '-')

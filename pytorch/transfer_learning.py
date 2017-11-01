@@ -93,6 +93,7 @@ data_transforms = {
     ]),
 }
 """
+
 use_gpu = torch.cuda.is_available()
 print("Using GPU:", use_gpu)
 
@@ -116,8 +117,8 @@ For jpegs
 train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 """
-train_data_dir = '/mnt/mounted_bucket'
-val_data_dir = '/mnt/mounted_bucket'
+train_data_dir = '~/tiffs'
+val_data_dir = '~/tiffs'
 
 train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
 val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
@@ -126,11 +127,11 @@ val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
 train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
                                            root_dir=train_data_dir,
                                            transform=data_transforms['train'],
-                                           sat_type="s1")
+                                           sat_type="l8")
 val_dataset = BangladeshDataset(csv_file=val_bangladesh_csv_path,
                                            root_dir=val_data_dir,
                                            transform=data_transforms['val'],
-                                           sat_type="s1")
+                                           sat_type="l8")
 
 image_datasets = {'train': train_dataset, 'val': val_dataset}
 
@@ -138,7 +139,7 @@ dataloders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=32,
                                              shuffle=True, num_workers=8)
               for x in ['train', 'val']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-
+print(dataset_sizes)
 ######################################################################
 # Training the model
 # ------------------
@@ -153,7 +154,7 @@ dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 # ``torch.optim.lr_scheduler``.
 
 
-def train_model(model, criterion, optimizer, num_epochs=10):
+def train_model(model, criterion, optimizer, args, num_epochs=25):
     since = time.time()
 
     best_model_wts = model.state_dict()
@@ -166,6 +167,7 @@ def train_model(model, criterion, optimizer, num_epochs=10):
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print(time.ctime())
         print('-' * 10)
 
         y_true = []
@@ -180,7 +182,6 @@ def train_model(model, criterion, optimizer, num_epochs=10):
 
             running_loss = 0.0
             # running_corrects = 0
-
             # Iterate over data.
             for i, data in enumerate(dataloders[phase]):
                 # get the inputs
@@ -216,7 +217,7 @@ def train_model(model, criterion, optimizer, num_epochs=10):
                 running_loss += loss.data[0]
                 #running_corrects += torch.sum(preds == labels.data)
 
-            epoch_loss = running_loss / dataset_sizes[phase]
+            epoch_loss = running_loss / (dataset_sizes[phase] / 4)
             epoch_ro, epoch_p = pearsonr(y_pred, y_true)
             epoch_ro = epoch_ro ** 2
             #epoch_acc = running_corrects / dataset_sizes[phase]
@@ -244,8 +245,10 @@ def train_model(model, criterion, optimizer, num_epochs=10):
     print('Training complete in {:.0f}m {:.0f}s'.format(
     time_elapsed // 60, time_elapsed % 60))
     print('Best R2: {:4f}'.format(best_r2))
-    print(best_y_pred)
-    print(best_y_true)
+    y_pred_filename = "~/models/epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ypred" + ".npy"
+    y_true_filename = "~/models/epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ytrue" + ".npy"
+    np.save(y_pred_filename, best_y_pred)
+    np.save(y_true_filename, best_y_true)
 
     # save losses and r2s
     for k, v in losses.items():
@@ -263,7 +266,7 @@ def main():
 
     main_arg_parser.add_argument("--epochs", type=int, default=16,
                                   help="number of training epochs, default is 16")
-    main_arg_parser.add_argument("--fine-tune", type=bool, default=True,
+    main_arg_parser.add_argument("--fine-tune", type=bool, default=False,
                                   help="fine tune full network if true, otherwise just FC layer")
     main_arg_parser.add_argument("--save-model-dir", type=str, default="~/models",
                                   help="save best trained model in this directory")
@@ -274,6 +277,8 @@ def main():
     print("Train for {} epochs.".format(args.epochs))
     print("Fine tune full network: " + str(args.fine_tune))
     print("Save best model in " + args.save_model_dir)
+    save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
+    print(save_model_filename)
     print("====================================")
     print
 
@@ -324,7 +329,7 @@ def main():
     criterion = nn.MSELoss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
-    optimizer_conv = Adam(model_conv.parameters(), 1e-3)
+    optimizer_conv = Adam(params, 1e-3)
     """
     optimizer_conv = optim.SGD(params, lr=0.001, momentum=0.9)
 
@@ -350,7 +355,7 @@ def main():
     # network. However, forward does need to be computed.
     #
 
-    model_conv = train_model(model_conv, criterion, optimizer_conv, num_epochs=args.epochs)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, args, num_epochs=args.epochs)
 
     save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
     save_model_path = os.path.join(args.save_model_dir, save_model_filename)
