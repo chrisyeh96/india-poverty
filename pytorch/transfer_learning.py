@@ -46,6 +46,7 @@ import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
 from load_dataset import BangladeshDataset
+from sklearn import metrics
 import matplotlib.pyplot as plt
 import time
 import os
@@ -117,8 +118,8 @@ For jpegs
 train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 """
-train_data_dir = '~/tiffs'
-val_data_dir = '~/tiffs'
+train_data_dir = '/home/tony/bucket_dump'
+val_data_dir = '/home/tony/bucket_dump'
 
 train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
 val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
@@ -218,19 +219,22 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
                 #running_corrects += torch.sum(preds == labels.data)
 
             epoch_loss = running_loss / (dataset_sizes[phase] / 4)
-            epoch_ro, epoch_p = pearsonr(y_pred, y_true)
-            epoch_ro = epoch_ro ** 2
+
+            #epoch_ro, epoch_p = pearsonr(y_pred, y_true)
+            #epoch_ro = epoch_ro ** 2
             #epoch_acc = running_corrects / dataset_sizes[phase]
 
+            epoch_r2 = metrics.r2_score(y_true, y_pred)
+
             losses[phase].append(epoch_loss)
-            r2s[phase].append(epoch_ro)
+            r2s[phase].append(epoch_r2)
 
             print('{} Loss: {:.4f} R2: {:.4f}'.format(
-                phase, epoch_loss, epoch_ro))
+                phase, epoch_loss, epoch_r2))
 
             # deep copy the model
-            if phase == 'val' and epoch_ro > best_r2:
-                best_r2 = epoch_ro
+            if phase == 'val' and epoch_r2 > best_r2:
+                best_r2 = epoch_r2
                 best_y_pred = y_pred
                 best_y_true = y_true
                 if use_gpu:
@@ -245,8 +249,8 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
     print('Training complete in {:.0f}m {:.0f}s'.format(
     time_elapsed // 60, time_elapsed % 60))
     print('Best R2: {:4f}'.format(best_r2))
-    y_pred_filename = "~/models/epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ypred" + ".npy"
-    y_true_filename = "~/models/epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ytrue" + ".npy"
+    y_pred_filename = "./epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ypred" + ".npy"
+    y_true_filename = "./epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ytrue" + ".npy"
     np.save(y_pred_filename, best_y_pred)
     np.save(y_true_filename, best_y_true)
 
@@ -264,11 +268,11 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
 def main():
     main_arg_parser = argparse.ArgumentParser(description="parser for transfer-learning")
 
-    main_arg_parser.add_argument("--epochs", type=int, default=16,
+    main_arg_parser.add_argument("--epochs", type=int, default=50,
                                   help="number of training epochs, default is 16")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=False,
                                   help="fine tune full network if true, otherwise just FC layer")
-    main_arg_parser.add_argument("--save-model-dir", type=str, default="~/models",
+    main_arg_parser.add_argument("--save-model-dir", type=str, default="./",
                                   help="save best trained model in this directory")
 
 
