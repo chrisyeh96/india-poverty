@@ -118,8 +118,8 @@ For jpegs
 train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 """
-train_data_dir = '~/tiffs/'
-val_data_dir = '~/tiffs/'
+train_data_dir = '~/tiffs'
+val_data_dir = '~/tiffs'
 
 train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
 val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
