@@ -157,6 +157,7 @@ class BangladeshMultibandDataset(Dataset):
 
         #normalize
         image = (image.astype(np.float32) - self.mean)/self.std
+        image = image.transpose((2,0,1))
         # image = Image.fromarray(image.transpose((1, 2, 0)))
         #hhid = str(hhid).replace('.', '-')
         # TODO: should transform to PIL image?
