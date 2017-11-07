@@ -3,7 +3,7 @@ from __future__ import print_function, division
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim import lr_scheduler
+#from torch.optim import lr_scheduler
 from torch.autograd import Variable
 import numpy as np
 import torchvision
@@ -47,6 +47,41 @@ def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=
     if gdal_tif is None:
         return None
     return gdal_tif.ReadAsArray().astype("uint8")
+
+######################################################################
+# Load tif from hhid as numpy array. 
+# This helper function is specific to 2011 Bangladesh tifs
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# E.g. l8_median_bangladesh_2011_multiband_500x500_1000.0.tif
+# E.g. l8_median_bangladesh_2011_vis_500x500_1000.0.tif
+#
+# Parameters:
+#   - hhid: household id. Float
+#   - prefix: "s1" or "l8" corresponding to Sentinel-1 or Landsat8. String
+#   - imgtype: "vis" or "multiband". String
+#   - quiet: 
+#
+# Returns:
+#   - gdal_tif: numpy array corresponding to gdal tif
+#
+
+def load_bangladesh_2011_tiff(root_dir, hhid, imgtype="vis", quiet=True):
+    """
+    hhid:    household index as float [pull from bangladesh_2011 csv]
+    prefix:  either "s1" or "l8"
+    imgtype: either "vis" or "multiband"
+    """
+    #source_tiff = "/mnt/staff-bucket/{}_median_bangladesh_{}_500x500_{:.1f}.tif".format(prefix, imgtype, hhid)
+    source_tiff = "{}/l8_median_bangladesh_2011_{}_500x500_{:.1f}.tif".format(root_dir, imgtype, hhid)
+    if not quiet:
+        print("Loading {}...".format(source_tiff))
+    gdal_tif = gdal.Open(source_tiff)
+    if gdal_tif is None:
+        return None
+    return gdal_tif.ReadAsArray().astype("uint8")
+
+
+
 
 
 ######################################################################

@@ -76,6 +76,39 @@ plt.ion()   # interactive mode
 
 # Data augmentation and normalization for training
 # Just normalization for validation
+
+use_gpu = torch.cuda.is_available()
+print("Using GPU:", use_gpu)
+   
+"""
+For jpegs
+-------------------
+train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
+val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
+"""
+
+"""
+For Elliott
+------------
+"""
+train_data_dir = '/home/echartock03/tiffs'
+val_data_dir = '/home/echartock03/tiffs'
+
+train_bangladesh_csv_path = '../data/bangladesh_2015_train.csv'
+val_bangladesh_csv_path = '../data/bangladesh_2015_valid.csv'
+
+"""
+For Tony
+------------
+train_data_dir = '../../bucket_dump'
+val_data_dir = '../../bucket_dump'
+
+train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
+val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
+"""
+
+
+
 """
 PyTorch transfer learning tutorial transforms
 ==================================
@@ -95,52 +128,46 @@ data_transforms = {
 }
 """
 
-use_gpu = torch.cuda.is_available()
-print("Using GPU:", use_gpu)
 
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-
-# TODO: put data here
-"""
-For jpegs
--------------------
-train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
-val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
-"""
-train_data_dir = '../../bucket_dump'
-val_data_dir = '../../bucket_dump'
-
-train_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'
-val_bangladesh_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'
+def load_dataset(sat_type="l8", year=2015):
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+        'val': transforms.Compose([
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+    }
 
 
-train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
-                                           root_dir=train_data_dir,
-                                           transform=data_transforms['train'],
-                                           sat_type="l8")
-val_dataset = BangladeshDataset(csv_file=val_bangladesh_csv_path,
-                                           root_dir=val_data_dir,
-                                           transform=data_transforms['val'],
-                                           sat_type="l8")
+    train_dataset = BangladeshDataset(csv_file=train_bangladesh_csv_path,
+                                               root_dir=train_data_dir,
+                                               transform=data_transforms['train'],
+                                               sat_type=sat_type, year=year)
+    val_dataset = BangladeshDataset(csv_file=val_bangladesh_csv_path,
+                                               root_dir=val_data_dir,
+                                               transform=data_transforms['val'],
+                                               sat_type=sat_type, year=year)
 
-image_datasets = {'train': train_dataset, 'val': val_dataset}
+    image_datasets = {'train': train_dataset, 'val': val_dataset}
 
-dataloders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=32,
-                                             shuffle=True, num_workers=8)
-              for x in ['train', 'val']}
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-print(dataset_sizes)
+    dataloders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
+                                                 shuffle=True, num_workers=4)
+                  for x in ['train', 'val']}
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    print(dataset_sizes)
+    return dataloders
+
+
+
+
+
+
+
 ######################################################################
 # Training the model
 # ------------------
@@ -274,6 +301,10 @@ def main():
                                   help="fine tune full network if true, otherwise just FC layer")
     main_arg_parser.add_argument("--save-model-dir", type=str, default="./",
                                   help="save best trained model in this directory")
+    main_arg_parser.add_argument("--sat-type", type=str, default="l8",
+                                  help="l8 or s1")
+    main_arg_parser.add_argument("--year", type=int, default=2015,
+                                  help="2015 or 2011")
 
 
     args = main_arg_parser.parse_args()
@@ -281,22 +312,15 @@ def main():
     print("Train for {} epochs.".format(args.epochs))
     print("Fine tune full network: " + str(args.fine_tune))
     print("Save best model in " + args.save_model_dir)
+    print("Using satellite (type, year): " + args.sat_type + "," + str(args.year))
     save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
     print(save_model_filename)
     print("====================================")
     print
 
-    """
-    Only in ipynb can we visualize.
 
-    # Get a batch of training data
-    inputs, classes = next(iter(dataloders['train']))
 
-    # Make a grid from batch
-    out = torchvision.utils.make_grid(inputs)
-
-    imshow(out, title=[class_names[x] for x in classes])
-    """    
+    dataloders = load_dataset(sat_type=args.sat_type, year=args.year):  
 
     ######################################################################
     # Finetuning the convnet
@@ -361,7 +385,7 @@ def main():
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, args, num_epochs=args.epochs)
 
-    save_model_filename = "epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + ".model"
+    # save_model_filename defined above
     save_model_path = os.path.join(args.save_model_dir, save_model_filename)
     torch.save(model_conv.state_dict(), save_model_path)
 
