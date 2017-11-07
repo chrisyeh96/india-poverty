@@ -122,8 +122,8 @@ class BangladeshMultibandDataset(Dataset):
         """
         self.households = pd.read_csv(csv_file)
         self.root_dir = root_dir
-        self.transform = transform
-        self.target_transform = target_transform
+        # self.transform = transform
+        # self.target_transform = target_transform
         self.sat_type = sat_type
         self.crop_size = crop_size
         self.mean = np.array(mean)
