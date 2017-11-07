@@ -112,7 +112,7 @@ class BangladeshDataset(Dataset):
 class BangladeshMultibandDataset(Dataset):
     """Bangladesh Poverty dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8", crop_size =224, mean,std):
+    def __init__(self, csv_file, root_dir,sat_type="l8", crop_size =224, mean=[0,0,0],std=[1,1,1]):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.

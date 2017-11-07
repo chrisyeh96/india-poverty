@@ -73,14 +73,12 @@ multi_std = [0.229, 0.224, 0.225,1,1,1]
 # crop_size =224, mean,std)
 train_dataset = BangladeshMultibandDataset(csv_file=train_bangladesh_csv_path,
                                            root_dir=train_data_dir,
-                                           transform=None,
                                            sat_type="l8",
                                            crop_size = 224,
                                            mean = multi_mean,
                                            std = multi_std)
 val_dataset = BangladeshMultibandDataset(csv_file=val_bangladesh_csv_path,
                                            root_dir=val_data_dir,
-                                           transform=None,
                                            sat_type="l8",
                                            crop_size = 224,
                                            mean = multi_mean,
