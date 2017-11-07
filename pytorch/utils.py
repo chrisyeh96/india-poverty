@@ -49,6 +49,24 @@ def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=
     return gdal_tif.ReadAsArray().astype("uint8")
 
 
+
+#this is for 2011 data (espeically used in multiband_transfer_learning.py)
+def load_bangladesh_2011_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=True):
+    """
+    hhid:    household index as float [pull from bangladesh_2015 csv]
+    prefix:  either "s1" or "l8"
+    imgtype: either "vis" or "multiband"
+    """
+    #source_tiff = "/mnt/staff-bucket/{}_median_bangladesh_{}_500x500_{:.1f}.tif".format(prefix, imgtype, hhid)
+    source_tiff = "{}/{}_median_bangladesh_2011_{}_500x500_{:.1f}.tif".format(root_dir, prefix, imgtype, hhid)
+    if not quiet:
+        print("Loading {}...".format(source_tiff))
+    gdal_tif = gdal.Open(source_tiff)
+    if gdal_tif is None:
+        return None
+    return gdal_tif.ReadAsArray().astype("uint8")
+
+
 ######################################################################
 # Visualizing the model predictions
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
