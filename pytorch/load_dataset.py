@@ -22,6 +22,12 @@ IMG_EXTENSIONS.append('tif')
 
 
 
+def crop_center(img,cropx,cropy):
+    y,x,c = img.shape
+    startx = x//2-(cropx//2)
+    starty = y//2-(cropy//2)    
+    return img[starty:starty+cropy,startx:startx+cropx,:]
+
 
 
 class BangladeshDataset(Dataset):
@@ -106,7 +112,7 @@ class BangladeshDataset(Dataset):
 class BangladeshMultibandDataset(Dataset):
     """Bangladesh Poverty dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8"):
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8", crop_size =224, mean,std):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -119,6 +125,9 @@ class BangladeshMultibandDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.sat_type = sat_type
+        self.crop_size = crop_size
+        self.mean = np.array(mean)
+        self.std = np.array(std)
         bucket_files = open("../data/bucket_files.txt", "r").readlines()
         bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
         # l8_median_bangladesh_2011_multiband_500x500_11.0.tif 
@@ -143,16 +152,37 @@ class BangladeshMultibandDataset(Dataset):
         # numpy array, image.shape = (3, 500, 500)
         image = load_bangladesh_2015_tiff(self.root_dir, hhid, prefix, imgtype, quiet=True)
         # transpose makes shape image.shape = (500, 500, 3) #for multiband 6
-        image = Image.fromarray(image.transpose((1, 2, 0)))
+        image = image.transpose((1, 2, 0))
+        image = crop_center(image,self.crop_size,self.crop_size)
+
+        #normalize
+        image = (img.astype(np.float32) - self.mean)/self.std
+        # image = Image.fromarray(image.transpose((1, 2, 0)))
         #hhid = str(hhid).replace('.', '-')
         # TODO: should transform to PIL image?
         #image = Image.open(img_name)
         # TODO: set expenditure index
         expenditure = self.households["totexp_m"][idx]
         
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            expenditure = self.target_transform(expenditure)
+        # if self.transform:
+        #     image = self.transform(image)
+        # if self.target_transform:
+        #     expenditure = self.target_transform(expenditure)
 
         return image, expenditure
+
+
+# class MyNormalize2(object):
+#     def __init__(self, rgb_mean = [0,0,0], rgb_max = 255, flow_mean = [0,0], flow_std = [1,1]):
+#         self.rgb_mean = np.array(rgb_mean)
+#         self.rgb_max = float(rgb_max)
+#         self.flow_mean = np.array(flow_mean)
+#         self.flow_std = np.array(flow_std)
+#     def __call__(self, img):
+#         h, w, c = img.shape
+#         # print("#"*30)
+#         # print("raw", img.astype(np.float32))
+#         # print("#"*30)
+#         if c == 2:
+#             return (img.astype(np.float32) - self.flow_mean)/ (3*self.flow_std)
+#         return (img.astype(np.float32) - self.rgb_mean)/ (self.rgb_max)
