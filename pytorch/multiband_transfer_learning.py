@@ -143,7 +143,7 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
  
                 # wrap them in Variable
                 if use_gpu:
-                    inputs = Variable(inputs.cuda())
+                    inputs = Variable(inputs.float().cuda())
                     labels = Variable(labels.float().cuda())
                 else:
                     inputs, labels = Variable(inputs), Variable(labels.float())
