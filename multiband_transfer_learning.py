@@ -1,33 +1,6 @@
 """
 Transfer Learning tutorial
 ==========================
-**Author**: `Sasank Chilamkurthy <https://chsasank.github.io>`_
-
-In this tutorial, you will learn how to train your network using
-transfer learning. You can read more about the transfer learning at `cs231n
-notes <http://cs231n.github.io/transfer-learning/>`__
-
-Quoting this notes,
-
-    In practice, very few people train an entire Convolutional Network
-    from scratch (with random initialization), because it is relatively
-    rare to have a dataset of sufficient size. Instead, it is common to
-    pretrain a ConvNet on a very large dataset (e.g. ImageNet, which
-    contains 1.2 million images with 1000 categories), and then use the
-    ConvNet either as an initialization or a fixed feature extractor for
-    the task of interest.
-
-These two major transfer learning scenarios looks as follows:
-
--  **Finetuning the convnet**: Instead of random initializaion, we
-   initialize the network with a pretrained network, like the one that is
-   trained on imagenet 1000 dataset. Rest of the training looks as
-   usual.
--  **ConvNet as fixed feature extractor**: Here, we will freeze the weights
-   for all of the network except that of the final fully connected
-   layer. This last fully connected layer is replaced with a new one
-   with random weights and only this layer is trained.
-
 """
 # License: BSD
 # Author: Sasank Chilamkurthy
@@ -53,74 +26,28 @@ import os
 
 plt.ion()   # interactive mode
 
-######################################################################
-# Load Data
-# ---------
-#
-# We will use torchvision and torch.utils.data packages for loading the
-# data.
-#
-# The problem we're going to solve today is to train a model to classify
-# **ants** and **bees**. We have about 120 training images each for ants and bees.
-# There are 75 validation images for each class. Usually, this is a very
-# small dataset to generalize upon, if trained from scratch. Since we
-# are using transfer learning, we should be able to generalize reasonably
-# well.
-#
-# This dataset is a very small subset of imagenet.
-#
-# .. Note ::
-#    Download the data from
-#    `here <https://download.pytorch.org/tutorial/hymenoptera_data.zip>`_
-#    and extract it to the current directory.
 
-# Data augmentation and normalization for training
-# Just normalization for validation
-"""
-PyTorch transfer learning tutorial transforms
-==================================
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.RandomSizedCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Scale(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-"""
 
 use_gpu = torch.cuda.is_available()
 print("Using GPU:", use_gpu)
 
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406,0,0,0], [0.229, 0.224, 0.225,1,1,1])
-    ]),
-    'val': transforms.Compose([
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406,0,0,0], [0.229, 0.224, 0.225,1,1,1])
-    ]),
-}
+# data_transforms = {
+#     'train': transforms.Compose([
+#         transforms.CenterCrop(224),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406,0,0,0], [0.229, 0.224, 0.225,1,1,1])
+#     ]),
+#     'val': transforms.Compose([
+#         transforms.CenterCrop(224),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406,0,0,0], [0.229, 0.224, 0.225,1,1,1])
+#     ]),
+# }
 
 # TODO: put data here
 """
 For jpegs
 -------------------
-train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
-val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
-"""
-"""
-train_data_dir = '/home/hmishfaq/tiffs'
-val_data_dir = '/home/hmishfaq/tiffs'
 """
 
 
