@@ -73,7 +73,7 @@ class BangladeshDataset(Dataset):
         # numpy array, image.shape = (3, 500, 500)
         if prefix == "s1" or self.year == 2015:
             image = load_bangladesh_2015_tiff(self.root_dir, hhid, prefix, imgtype, quiet=True)
-        else if prefix == "l8" and self.year == 2011:
+        elif prefix == "l8" and self.year == 2011:
             image = load_bangladesh_2011_tiff(self.root_dir, hhid, imgtype, quiet=True)
 
         # transpose makes shape image.shape = (500, 500, 3)

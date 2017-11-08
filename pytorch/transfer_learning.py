@@ -32,7 +32,7 @@ These two major transfer learning scenarios looks as follows:
 # License: BSD
 # Author: Sasank Chilamkurthy
 
-from __future__ import print_function, division
+#from __future__ import print_function, division
 
 import argparse
 from scipy.stats import pearsonr
@@ -47,11 +47,12 @@ import torchvision
 from torchvision import datasets, models, transforms
 from load_dataset import BangladeshDataset
 from sklearn import metrics
+#import matplotlib as mpl
+#mpl.use('Agg')
 import matplotlib.pyplot as plt
 import time
 import os
-
-plt.ion()   # interactive mode
+import seaborn as sns
 
 ######################################################################
 # Load Data
@@ -87,15 +88,6 @@ train_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 val_data_dir = '~/data/bangladesh_vis_jpgs/train/'
 """
 
-"""
-For Elliott
-------------
-"""
-train_data_dir = '/home/echartock03/tiffs'
-val_data_dir = '/home/echartock03/tiffs'
-
-train_bangladesh_csv_path = '../data/bangladesh_2015_train.csv'
-val_bangladesh_csv_path = '../data/bangladesh_2015_valid.csv'
 
 """
 For Tony
@@ -129,7 +121,8 @@ data_transforms = {
 """
 
 
-def load_dataset(sat_type="l8", year=2015):
+def load_dataset(train_bangladesh_csv_path, val_bangladesh_csv_path, 
+                 train_data_dir, val_data_dir, sat_type="l8", year=2015):
     data_transforms = {
         'train': transforms.Compose([
             transforms.CenterCrop(224),
@@ -160,7 +153,7 @@ def load_dataset(sat_type="l8", year=2015):
                   for x in ['train', 'val']}
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
     print(dataset_sizes)
-    return dataloders
+    return dataloders, dataset_sizes
 
 
 
@@ -182,7 +175,7 @@ def load_dataset(sat_type="l8", year=2015):
 # ``torch.optim.lr_scheduler``.
 
 
-def train_model(model, criterion, optimizer, args, num_epochs=25):
+def train_model(model, criterion, optimizer, args, dataloders, dataset_sizes, num_epochs=25,):
     since = time.time()
 
     best_model_wts = model.state_dict()
@@ -239,13 +232,13 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
                     loss.backward()
                     optimizer.step()
 
-                print("Batch", i, "Loss:", loss.data[0])
+                #print("Batch", i, "Loss:", loss.data[0])
 
                 # statistics
                 running_loss += loss.data[0]
                 #running_corrects += torch.sum(preds == labels.data)
 
-            epoch_loss = running_loss / (dataset_sizes[phase] / 4)
+            epoch_loss = running_loss / dataset_sizes[phase]
 
             #epoch_ro, epoch_p = pearsonr(y_pred, y_true)
             #epoch_ro = epoch_ro ** 2
@@ -270,24 +263,68 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
                 if use_gpu:
                     model.cuda()
 
-        print()
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
     time_elapsed // 60, time_elapsed % 60))
     print('Best R2: {:4f}'.format(best_r2))
-    y_pred_filename = "./epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ypred" + ".npy"
-    y_true_filename = "./epochs_" + str(args.epochs) + "_" + str(time.ctime()).replace(' ', '_') + "_" + "finetune_" + str(args.fine_tune) + "_ytrue" + ".npy"
+    print(losses)
+    print(r2s)
+    
+    
+    """
+    fig, ax = plt.subplots()
+    #fig = plt.figure()
+    #ax = plt.subplot(111)
+    plt.plot(np.array(losses["train"]), label="train")
+    plt.plot(np.array(losses["val"]), label="val")
+    plt.title("LandSat-8: Loss over epochs")
+    plt.xlabel("Epochs")
+    plt.legend()
+    #plt.show()
+
+    plt.savefig('/home/echartock03/models/losses.png')
+
+    
+    fig, ax = plt.subplots()
+    #fig = plt.figure()
+    #ax = plt.subplot(111)
+    plt.plot(np.array(r2s["train"]), label="train")
+    plt.plot(np.array(r2s["val"]), label="val")
+    plt.title("LandSat-8: $R^2$ over epochs")
+    plt.xlabel("Epochs")
+    plt.legend()
+    #plt.show()
+
+    plt.savefig('/home/echartock03/models/r2s.png')
+    
+
+
+    
+    fig = sns.jointplot(best_y_true[np.logical_and(best_y_true > 0, best_y_pred > 0)], 
+                    best_y_pred[np.logical_and(best_y_true > 0, best_y_pred > 0)], 
+                    kind="reg", size=8, marker=".")
+    fig.fig.set_size_inches((12, 8))
+    fig.ax_joint.set(ylabel="Predicted household expenditures [Taka]",
+                     xlabel="Observed household expenditures [Taka]")
+    fig.ax_joint.set_title("Bangladesh: CNN predicted versus observed household expenditures", y=0.98);
+    fig.savefig('/home/echartock03/models/predicted_vs_observed.png')
+    """
+    
+    
+    y_pred_filename = "/home/echartock03/models/{}_{}_bestypred_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), str(args.epochs), str(args.fine_tune))
+    y_true_filename = "/home/echartock03/models/{}_{}_bestytrue_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), str(args.epochs), str(args.fine_tune))
     np.save(y_pred_filename, best_y_pred)
     np.save(y_true_filename, best_y_true)
 
     # save losses and r2s
     for k, v in losses.items():
-        np.save("./losses_{}.npy".format(k), np.array(v))
+        np.save("/home/echartock03/models/{}_{}_losses_{}_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), k, str(args.epochs), str(args.fine_tune)), np.array(v))
     for k, v in r2s.items():
-        np.save("./r2s_{}.npy".format(k), np.array(v))
+        np.save("/home/echartock03/models/{}_{}_r2s_{}_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), k, str(args.epochs), str(args.fine_tune)), np.array(v))
 
     # load best model weights
+    model.cpu()
     model.load_state_dict(best_model_wts)
     return model
 
@@ -299,7 +336,7 @@ def main():
                                   help="number of training epochs, default is 16")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=False,
                                   help="fine tune full network if true, otherwise just FC layer")
-    main_arg_parser.add_argument("--save-model-dir", type=str, default="./",
+    main_arg_parser.add_argument("--save-model-dir", type=str, default="/home/echartock03/models",
                                   help="save best trained model in this directory")
     main_arg_parser.add_argument("--sat-type", type=str, default="l8",
                                   help="l8 or s1")
@@ -318,9 +355,19 @@ def main():
     print("====================================")
     print
 
+    """
+    For Elliott
+    ------------
+    """
+    train_data_dir = '/home/echartock03/data/' + args.sat_type + '_' + str(args.year)
+    val_data_dir = '/home/echartock03/data/' + args.sat_type + '_' + str(args.year)
+
+    train_bangladesh_csv_path = '../data/bangladesh_2015_train.csv'
+    val_bangladesh_csv_path = '../data/bangladesh_2015_valid.csv'
 
 
-    dataloders = load_dataset(sat_type=args.sat_type, year=args.year):  
+    dataloders, dataset_sizes = load_dataset(train_bangladesh_csv_path, val_bangladesh_csv_path, 
+                                             train_data_dir, val_data_dir, sat_type=args.sat_type, year=args.year)
 
     ######################################################################
     # Finetuning the convnet
@@ -383,7 +430,8 @@ def main():
     # network. However, forward does need to be computed.
     #
 
-    model_conv = train_model(model_conv, criterion, optimizer_conv, args, num_epochs=args.epochs)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, args, num_epochs=args.epochs, dataloders=dataloders,
+                                                                          dataset_sizes=dataset_sizes)
 
     # save_model_filename defined above
     save_model_path = os.path.join(args.save_model_dir, save_model_filename)

@@ -45,6 +45,7 @@ def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=
         print("Loading {}...".format(source_tiff))
     gdal_tif = gdal.Open(source_tiff)
     if gdal_tif is None:
+        print("IN LOAD 2015 TIFF, GDAL TIF IS NONE")
         return None
     return gdal_tif.ReadAsArray().astype("uint8")
 
@@ -77,6 +78,7 @@ def load_bangladesh_2011_tiff(root_dir, hhid, imgtype="vis", quiet=True):
         print("Loading {}...".format(source_tiff))
     gdal_tif = gdal.Open(source_tiff)
     if gdal_tif is None:
+        print("IN LOAD 2011 TIFF, GDAL TIF IS NONE")
         return None
     return gdal_tif.ReadAsArray().astype("uint8")
 
