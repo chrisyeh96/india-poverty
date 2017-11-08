@@ -1,0 +1,15 @@
+hhid = 10.1
+prefix = "l8"
+imgtype = "multiband"
+root = "/home/hmishfaq/multiband2015_bd_tiff/"
+image = load_bangladesh_2015_tiff(root,hhid,prefix,imgtype,quiet=True)
+
+image = Image.fromarray(image.transpose((1, 2, 0)))
+
+
+
+#####
+
+lr
+epoch
+batch size

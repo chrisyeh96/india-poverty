@@ -31,18 +31,6 @@ plt.ion()   # interactive mode
 use_gpu = torch.cuda.is_available()
 print("Using GPU:", use_gpu)
 
-# data_transforms = {
-#     'train': transforms.Compose([
-#         transforms.CenterCrop(224),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406,0,0,0], [0.229, 0.224, 0.225,1,1,1])
-#     ]),
-#     'val': transforms.Compose([
-#         transforms.CenterCrop(224),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406,0,0,0], [0.229, 0.224, 0.225,1,1,1])
-#     ]),
-# }
 
 # TODO: put data here
 """
@@ -219,7 +207,7 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
 def main():
     main_arg_parser = argparse.ArgumentParser(description="parser for transfer-learning")
 
-    main_arg_parser.add_argument("--epochs", type=int, default=50,
+    main_arg_parser.add_argument("--epochs", type=int, default=300,
                                   help="number of training epochs, default is 16")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=False,
                                   help="fine tune full network if true, otherwise just FC layer")
