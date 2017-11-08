@@ -191,10 +191,10 @@ def train_model(model, criterion, optimizer, args, dataloders, dataset_sizes, nu
         print(time.ctime())
         print('-' * 10)
 
-        y_true = []
-        y_pred = []
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
+            y_true = []
+            y_pred = []
             if phase == 'train':
                 #scheduler.step()
                 model.train(True)  # Set model to training mode
@@ -312,16 +312,16 @@ def train_model(model, criterion, optimizer, args, dataloders, dataset_sizes, nu
     """
     
     
-    y_pred_filename = "/home/echartock03/models/{}_{}_bestypred_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), str(args.epochs), str(args.fine_tune))
-    y_true_filename = "/home/echartock03/models/{}_{}_bestytrue_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), str(args.epochs), str(args.fine_tune))
+    y_pred_filename = "/home/tony/models/{}_{}_bestypred_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), str(args.epochs), str(args.fine_tune))
+    y_true_filename = "/home/tony/models/{}_{}_bestytrue_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), str(args.epochs), str(args.fine_tune))
     np.save(y_pred_filename, best_y_pred)
     np.save(y_true_filename, best_y_true)
 
     # save losses and r2s
     for k, v in losses.items():
-        np.save("/home/echartock03/models/{}_{}_losses_{}_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), k, str(args.epochs), str(args.fine_tune)), np.array(v))
+        np.save("/home/tony/models/{}_{}_losses_{}_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), k, str(args.epochs), str(args.fine_tune)), np.array(v))
     for k, v in r2s.items():
-        np.save("/home/echartock03/models/{}_{}_r2s_{}_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), k, str(args.epochs), str(args.fine_tune)), np.array(v))
+        np.save("/home/tony/models/{}_{}_r2s_{}_epochs_{}_finetune_{}.npy".format(args.sat_type, str(args.year), k, str(args.epochs), str(args.fine_tune)), np.array(v))
 
     # load best model weights
     model.cpu()
@@ -336,7 +336,7 @@ def main():
                                   help="number of training epochs, default is 16")
     main_arg_parser.add_argument("--fine-tune", type=bool, default=False,
                                   help="fine tune full network if true, otherwise just FC layer")
-    main_arg_parser.add_argument("--save-model-dir", type=str, default="/home/echartock03/models",
+    main_arg_parser.add_argument("--save-model-dir", type=str, default="/home/tony/models",
                                   help="save best trained model in this directory")
     main_arg_parser.add_argument("--sat-type", type=str, default="l8",
                                   help="l8 or s1")
@@ -359,8 +359,8 @@ def main():
     For Elliott
     ------------
     """
-    train_data_dir = '/home/echartock03/data/' + args.sat_type + '_' + str(args.year)
-    val_data_dir = '/home/echartock03/data/' + args.sat_type + '_' + str(args.year)
+    train_data_dir = '/home/tony/bucket_files'
+    val_data_dir = '/home/tony/bucket_files'
 
     train_bangladesh_csv_path = '../data/bangladesh_2015_train.csv'
     val_bangladesh_csv_path = '../data/bangladesh_2015_valid.csv'
