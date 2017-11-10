@@ -17,7 +17,7 @@ import gdal
 gdal.SetCacheMax(2**30) # 1 GB
 
 ######################################################################
-# Load tif from hhid as numpy array. 
+# Load tif from hhid as numpy array.
 # This helper function is specific to 2015 Bangladesh tifs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # E.g. l8_median_bangladesh_vis_500x500_1000.0.tif
@@ -27,7 +27,7 @@ gdal.SetCacheMax(2**30) # 1 GB
 #   - hhid: household id. Float
 #   - prefix: "s1" or "l8" corresponding to Sentinel-1 or Landsat8. String
 #   - imgtype: "vis" or "multiband". String
-#   - quiet: 
+#   - quiet:
 #
 # Returns:
 #   - gdal_tif: numpy array corresponding to gdal tif
@@ -39,7 +39,6 @@ def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=
     prefix:  either "s1" or "l8"
     imgtype: either "vis" or "multiband"
     """
-    #source_tiff = "/mnt/staff-bucket/{}_median_bangladesh_{}_500x500_{:.1f}.tif".format(prefix, imgtype, hhid)
     source_tiff = "{}/{}_median_bangladesh_{}_500x500_{:.1f}.tif".format(root_dir, prefix, imgtype, hhid)
     if not quiet:
         print("Loading {}...".format(source_tiff))
@@ -49,8 +48,24 @@ def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=
         return None
     return gdal_tif.ReadAsArray().astype("uint8")
 
+
+def load_india_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=True):
+    """
+    hhid:    household index as float [pull from bangladesh_2015 csv]
+    prefix:  either "s1" or "l8"
+    imgtype: either "vis" or "multiband"
+    """
+    source_tiff = "{}/{}_median_india_{}_500x500_{:.1f}.tif".format(root_dir, prefix, imgtype, hhid)
+    if not quiet:
+        print("Loading {}...".format(source_tiff))
+    gdal_tif = gdal.Open(source_tiff)
+    if gdal_tif is None:
+        return None
+    return gdal_tif.ReadAsArray().astype("uint8")
+
+
 ######################################################################
-# Load tif from hhid as numpy array. 
+# Load tif from hhid as numpy array.
 # This helper function is specific to 2011 Bangladesh tifs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # E.g. l8_median_bangladesh_2011_multiband_500x500_1000.0.tif
@@ -60,7 +75,7 @@ def load_bangladesh_2015_tiff(root_dir, hhid, prefix="s1", imgtype="vis", quiet=
 #   - hhid: household id. Float
 #   - prefix: "s1" or "l8" corresponding to Sentinel-1 or Landsat8. String
 #   - imgtype: "vis" or "multiband". String
-#   - quiet: 
+#   - quiet:
 #
 # Returns:
 #   - gdal_tif: numpy array corresponding to gdal tif

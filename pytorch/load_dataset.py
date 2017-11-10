@@ -2,7 +2,6 @@ from __future__ import print_function, division
 import os
 import torch
 import pandas as pd
-#from skimage import io #, transform
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
@@ -16,17 +15,12 @@ from torchvision.datasets.folder import IMG_EXTENSIONS
 IMG_EXTENSIONS.append('tiff')
 IMG_EXTENSIONS.append('tif')
 
-# Ignore warnings
-# import warnings
-# warnings.filterwarnings("ignore")
 
-
-
-"""
-- Removes households with zero expenditure
-- Removes households without corresponding tiff
-"""
 def clean_household_data(csv_file, sat_type):
+    """
+    - Removes households with zero expenditure
+    - Removes households without corresponding tiff
+    """
     households = pd.read_csv(csv_file)
     bucket_files = open("../data/bucket_files.txt", "r").readlines()
     bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
@@ -38,7 +32,6 @@ def clean_household_data(csv_file, sat_type):
 
 
 class BangladeshDataset(Dataset):
-    """Bangladesh Poverty dataset."""
 
     def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8", year=2015):
         """
@@ -79,7 +72,7 @@ class BangladeshDataset(Dataset):
         # transpose makes shape image.shape = (500, 500, 3)
         image = Image.fromarray(image.transpose((1, 2, 0)))
         expenditure = self.households["totexp_m"][idx]
-        
+
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
@@ -88,12 +81,7 @@ class BangladeshDataset(Dataset):
         return image, expenditure
 
 
-
-
-
-    
 class BangladeshDatasetJpegs(Dataset):
-    """Bangladesh Poverty dataset."""
 
     def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8"):
         """
@@ -124,8 +112,8 @@ class BangladeshDatasetJpegs(Dataset):
         image = Image.open(img_name)
         #image = io.imread(img_name)
         # TODO: set expenditure index
-        expenditure = self.households["totexp_m"][idx]
-        
+        expenditure = self.households["totexp_m_pc"][idx]
+
 
         if self.transform:
             image = self.transform(image)
@@ -133,3 +121,40 @@ class BangladeshDatasetJpegs(Dataset):
             expenditure = self.target_transform(expenditure)
 
         return image, expenditure
+
+
+class IndiaDataset(Dataset):
+
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="s1", year=2015):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.df = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+        self.transform = transform
+        self.target_transform = target_transform
+        self.sat_type = sat_type
+        nonzero_exp = self.df["secc_cons_per_hh"] > 0
+        self.df = self.df[nonzero_exp]
+        self.df = self.df.reset_index()
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        hhid = self.df["id"][idx]
+        image = load_india_tiff(self.root_dir, hhid, self.sat_type, "vis", quiet=True)
+        image = Image.fromarray(image.transpose((1, 2, 0)))
+        expenditure = self.df["secc_cons_per_hh"][idx]
+
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            expenditure = self.target_transform(expenditure)
+
+        return image, expenditure
+
