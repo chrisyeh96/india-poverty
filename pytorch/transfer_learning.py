@@ -12,7 +12,7 @@ from scipy.stats import pearsonr
 from torch.autograd import Variable
 from torchvision import datasets, models, transforms
 from sklearn import metrics
-from load_dataset import BangladeshDataset
+from load_dataset import BangladeshDataset, IndiaDataset
 
 
 ######################################################################
@@ -74,7 +74,7 @@ def train_model(model, criterion, optimizer, args, dataloaders, dataset_sizes, m
     since = time.time()
 
     best_model_wts = model.state_dict()
-    best_r2 = 0.0
+    best_r2 = float("-inf")
     best_y_pred = []
     best_y_true = []
 
@@ -100,7 +100,7 @@ def train_model(model, criterion, optimizer, args, dataloaders, dataset_sizes, m
 
     for epoch in range(1, num_epochs + 1):
 
-        print("Epoch {}/{}".format(epoch, num_epochs - 1))
+        print("Epoch {}/{}".format(epoch, num_epochs))
         print(time.ctime())
         print("-" * 10)
 
@@ -182,6 +182,8 @@ def train_model(model, criterion, optimizer, args, dataloaders, dataset_sizes, m
 def main():
     arg_parser = argparse.ArgumentParser(description="parser for transfer-learning")
 
+    arg_parser.add_argument("--name", type=str, default=None,
+                                  help="name for the model")
     arg_parser.add_argument("--epochs", type=int, default=50,
                                   help="number of training epochs, default is 16")
     arg_parser.add_argument("--fine-tune", type=bool, default=True,
@@ -198,7 +200,11 @@ def main():
 
     args = arg_parser.parse_args()
 
-    model_name = "{}_{}_{}_{}".format(args.country, args.sat_type, str(args.year), str(time.ctime()).replace(" ", "_"))
+    if not args.name:
+        model_name = "{}_{}_{}_{}".format(
+            args.country, args.sat_type, str(args.year), str(time.ctime()).replace(" ", "_"))
+    else:
+        model_name = args.name
     os.mkdir(os.path.join(home_dir, "models", model_name))
 
     print("Begin training for {}".format(args.country))
@@ -217,8 +223,8 @@ def main():
         train_csv_path = "../data/bangladesh_2015_train.csv"
         val_csv_path = "../data/bangladesh_2015_valid.csv"
     elif args.country == "india":
-        train_csv_path = "../data/bangladesh_2015_train.csv"
-        val_csv_path = "../data/bangladesh_2015_valid.csv"
+        train_csv_path = "../data/india_train.csv"
+        val_csv_path = "../data/india_valid.csv"
     else:
         raise NotImplementedError("Not implemented")
 
@@ -242,7 +248,7 @@ def main():
     criterion = nn.SmoothL1Loss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
-    optimizer_conv = optim.Adam(params, 1e-3)
+    optimizer_conv = optim.RMSprop(params, 1e-3)
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, args, model_name=model_name, num_epochs=args.epochs, dataloaders=dataloaders,
                                                                           dataset_sizes=dataset_sizes)

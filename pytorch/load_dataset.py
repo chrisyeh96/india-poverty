@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image
-from utils import load_bangladesh_2015_tiff, load_bangladesh_2011_tiff
+from utils import load_bangladesh_2015_tiff, load_india_tiff
 
 # from https://discuss.pytorch.org/t/load-tiff-images-to-dataset/8593/3
 from torchvision.datasets import ImageFolder
@@ -138,7 +138,7 @@ class IndiaDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.sat_type = sat_type
-        nonzero_exp = self.df["secc_cons_per_hh"] > 0
+        nonzero_exp = self.df["secc_cons_per_cap_scaled"] > 0
         self.df = self.df[nonzero_exp]
         self.df = self.df.reset_index()
 
@@ -149,7 +149,7 @@ class IndiaDataset(Dataset):
         hhid = self.df["id"][idx]
         image = load_india_tiff(self.root_dir, hhid, self.sat_type, "vis", quiet=True)
         image = Image.fromarray(image.transpose((1, 2, 0)))
-        expenditure = self.df["secc_cons_per_hh"][idx]
+        expenditure = self.df["secc_cons_per_cap_scaled"][idx]
 
         if self.transform:
             image = self.transform(image)
