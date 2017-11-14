@@ -110,10 +110,14 @@ def train_model(model, criterion, optimizer, args, num_epochs=25):
         print(time.ctime())
         print('-' * 10)
 
-        y_true = []
-        y_pred = []
+        # y_true = []
+        # y_pred = []
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
+            
+            y_true = []
+            y_pred = []
+            
             if phase == 'train':
                 #scheduler.step()
                 model.train(True)  # Set model to training mode
