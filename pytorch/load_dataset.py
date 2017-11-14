@@ -49,7 +49,7 @@ class BangladeshDataset(Dataset):
         bucket_files = open("../data/bucket_files.txt", "r").readlines()
         bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
         exists = self.households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format(sat_type, "bangladesh", "vis", z) in bucket_files)
-        nonzero_exp = self.households["totexp_m"] > 0
+        nonzero_exp = self.households["totexp_m_pc"] > 0
         self.households = self.households[np.logical_and(exists, nonzero_exp)]
         self.households = self.households.reset_index()
 
@@ -74,7 +74,7 @@ class BangladeshDataset(Dataset):
         # TODO: should transform to PIL image?
         #image = Image.open(img_name)
         # TODO: set expenditure index
-        expenditure = self.households["totexp_m"][idx]
+        expenditure = self.households["totexp_m_pc"][idx]
         
         if self.transform:
             image = self.transform(image)
@@ -132,7 +132,7 @@ class BangladeshMultibandDataset(Dataset):
         bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
         # l8_median_bangladesh_2011_multiband_500x500_11.0.tif 
         exists = self.households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format(sat_type, "bangladesh", "multiband", z) in bucket_files)
-        nonzero_exp = self.households["totexp_m"] > 0
+        nonzero_exp = self.households["totexp_m_pc"] > 0
         self.households = self.households[np.logical_and(exists, nonzero_exp)]
         self.households = self.households.reset_index()
         
@@ -163,7 +163,7 @@ class BangladeshMultibandDataset(Dataset):
         # TODO: should transform to PIL image?
         #image = Image.open(img_name)
         # TODO: set expenditure index
-        expenditure = self.households["totexp_m"][idx]
+        expenditure = self.households["totexp_m_pc"][idx]
         
         # if self.transform:
         #     image = self.transform(image)
