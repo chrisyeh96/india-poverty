@@ -1,18 +1,18 @@
 from __future__ import print_function, division
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-#from torch.optim import lr_scheduler
-from torch.autograd import Variable
-import numpy as np
-import torchvision
-from geotiling import GeoProps
-from torchvision import datasets, models, transforms
-import matplotlib.pyplot as plt
 import time
 import os
 import gdal
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import torchvision
+import matplotlib.pyplot as plt
+from torch.autograd import Variable
+from torchvision import datasets, transforms
+from geotiling import GeoProps
+
 
 gdal.SetCacheMax(2**30) # 1 GB
 
@@ -87,7 +87,6 @@ def load_bangladesh_2011_tiff(root_dir, hhid, imgtype="vis", quiet=True):
     prefix:  either "s1" or "l8"
     imgtype: either "vis" or "multiband"
     """
-    #source_tiff = "/mnt/staff-bucket/{}_median_bangladesh_{}_500x500_{:.1f}.tif".format(prefix, imgtype, hhid)
     source_tiff = "{}/l8_median_bangladesh_2011_{}_500x500_{:.1f}.tif".format(root_dir, imgtype, hhid)
     if not quiet:
         print("Loading {}...".format(source_tiff))
@@ -98,13 +97,9 @@ def load_bangladesh_2011_tiff(root_dir, hhid, imgtype="vis", quiet=True):
     return gdal_tif.ReadAsArray().astype("uint8")
 
 
-
-
-
 ######################################################################
 # Visualizing the model predictions
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
 # Generic function to display predictions for a few images
 #
 
@@ -131,7 +126,6 @@ def visualize_model(model, dataloders, use_gpu, num_images=6):
 
             if images_so_far == num_images:
                 return
-
 
 
 ######################################################################

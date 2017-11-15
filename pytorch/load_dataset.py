@@ -71,7 +71,7 @@ class BangladeshDataset(Dataset):
 
         # transpose makes shape image.shape = (500, 500, 3)
         image = Image.fromarray(image.transpose((1, 2, 0)))
-        expenditure = self.households["totexp_m"][idx]
+        expenditure = self.households["totexp_m_pc"][idx]
 
         if self.transform:
             image = self.transform(image)

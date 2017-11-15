@@ -98,6 +98,10 @@ def train_model(model, criterion, optimizer, args, dataloaders, dataset_sizes, m
             np.save(os.path.join(home_dir, "models/", model_name, epoch_prefix, "rsq_{}.npy".format(k)),
                     np.array(v))
 
+        save_model_path = os.path.join(home_dir, "models/", model_name, epoch_prefix, "saved_model.model")
+        torch.save(model.state_dict(), save_model_path)
+
+
     for epoch in range(1, num_epochs + 1):
 
         print("Epoch {}/{}".format(epoch, num_epochs))
@@ -248,7 +252,7 @@ def main():
     criterion = nn.SmoothL1Loss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
-    optimizer_conv = optim.RMSprop(params, 1e-3)
+    optimizer_conv = optim.Adam(params, 1e-3)
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, args, model_name=model_name, num_epochs=args.epochs, dataloaders=dataloaders,
                                                                           dataset_sizes=dataset_sizes)
