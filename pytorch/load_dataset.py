@@ -25,8 +25,10 @@ def clean_household_data(csv_file, sat_type):
     bucket_files = open("../data/bucket_files.txt", "r").readlines()
     bucket_files = [q.split("/")[-1].strip() for q in bucket_files]
     exists = households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format(sat_type, "bangladesh", "vis", z) in bucket_files)
-    nonzero_exp = households["totexp_m"] > 0
-    households = households[np.logical_and(exists, nonzero_exp)]
+    duplicate = households["a01"].apply(lambda z: str(z)[-1] == '0')
+    households = households[np.logical_and(exists, duplicate)]
+    #households = households[exists]
+    households = households[pd.notnull(households['totexp_m_pc'])]
     households = households.reset_index()
     return households
 
@@ -71,7 +73,7 @@ class BangladeshDataset(Dataset):
 
         # transpose makes shape image.shape = (500, 500, 3)
         image = Image.fromarray(image.transpose((1, 2, 0)))
-        expenditure = self.households["totexp_m"][idx]
+        expenditure = self.households["totexp_m_pc"][idx]
 
         if self.transform:
             image = self.transform(image)

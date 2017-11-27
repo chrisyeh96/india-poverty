@@ -29,6 +29,7 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir, cou
     data_transforms = {
         "train": transforms.Compose([
             transforms.CenterCrop(224),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
@@ -140,6 +141,7 @@ def train_model(model, criterion, optimizer, args, dataloaders, dataset_sizes, m
                     optimizer.step()
 
                 if args.verbose:
+                    #print("Batch", i, "Labels:", labels)
                     print("Batch", i, "Loss:", loss.data[0])
 
                 running_loss += loss.data[0]
@@ -216,8 +218,8 @@ def main():
     print("====================================")
     print()
 
-    train_data_dir = "{}/tiffs".format(home_dir)
-    val_data_dir = "{}/tiffs".format(home_dir)
+    train_data_dir = "{}/data/{}_{}".format(home_dir, args.sat_type, args.year)
+    val_data_dir = "{}/data/{}_{}".format(home_dir, args.sat_type, args.year)
 
     if args.country == "bangladesh":
         train_csv_path = "../data/bangladesh_2015_train.csv"
@@ -245,10 +247,12 @@ def main():
     if use_gpu:
         model_conv = model_conv.cuda()
 
-    criterion = nn.SmoothL1Loss()
+    criterion = nn.MSELoss()
+    #criterion = nn.SmoothL1Loss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
-    optimizer_conv = optim.RMSprop(params, 1e-3)
+    #optimizer_conv = optim.RMSprop(params, 1e-3)
+    optimizer_conv = optim.Adam(params, 1e-3)
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, args, model_name=model_name, num_epochs=args.epochs, dataloaders=dataloaders,
                                                                           dataset_sizes=dataset_sizes)
