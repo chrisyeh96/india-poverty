@@ -25,15 +25,15 @@ print("Using GPU:", use_gpu)
 
 
 def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir, country,
-                 sat_type="l8", year=2015, batch_size=128):
+                 sat_type="l8", year=2015, batch_size=128, use_grouped_labels=False):
     data_transforms = {
         "train": transforms.Compose([
-            transforms.CenterCrop(224),
+            transforms.Scale(224),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         "val": transforms.Compose([
-            transforms.CenterCrop(224),
+            transforms.Scale(224),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
@@ -49,11 +49,11 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir, cou
     train_dataset = dataset(csv_file=train_csv_path,
                             root_dir=train_data_dir,
                             transform=data_transforms["train"],
-                            sat_type=sat_type, year=year)
+                            sat_type=sat_type, year=year, use_grouped_labels=use_grouped_labels)
     val_dataset = dataset(csv_file=val_csv_path,
                           root_dir=val_data_dir,
                           transform=data_transforms["val"],
-                          sat_type=sat_type, year=year)
+                          sat_type=sat_type, year=year, use_grouped_labels=use_grouped_labels)
 
     image_datasets = {"train": train_dataset, "val": val_dataset}
 
@@ -188,18 +188,25 @@ def main():
 
     arg_parser.add_argument("--name", type=str, default=None,
                                   help="name for the model")
-    arg_parser.add_argument("--epochs", type=int, default=50,
-                                  help="number of training epochs, default is 16")
+    arg_parser.add_argument("--epochs", type=int, default=10,
+                                  help="number of training epochs, default is 10")
     arg_parser.add_argument("--fine-tune", type=bool, default=True,
-                                  help="fine tune full network if true, otherwise just FC layer")
+                                  help="fine tune full network if true, otherwise only fc layer")
     arg_parser.add_argument("--country", type=str, default="bangladesh",
                                   help="bangladesh or india")
     arg_parser.add_argument("--sat-type", type=str, default="l8",
                                   help="l8 or s1")
     arg_parser.add_argument("--year", type=int, default=2015,
                                   help="2015 or 2011")
-    arg_parser.add_argument("--batch_size", type=int, default=128)
-    arg_parser.add_argument("--log_epoch_interval", type=int, default=20)
+    arg_parser.add_argument("--lr", type=float, default=1e-4,
+                                  help="learning rate")
+    arg_parser.add_argument("--batch_size", type=int, default=128,
+                                  help="batch size")
+    arg_parser.add_argument("--log_epoch_interval", type=int, default=20,
+                                  help="how often to update epochs")
+    arg_parser.add_argument("--preload-model", type=str, default=None,
+                                  help="directory of stored model")
+    arg_parser.add_argument("--use-grouped-labels", action="store_true")
     arg_parser.add_argument("--verbose", action="store_true")
 
     args = arg_parser.parse_args()
@@ -235,9 +242,12 @@ def main():
     dataloaders, dataset_sizes = load_dataset(train_csv_path, val_csv_path,
                                               train_data_dir, val_data_dir, args.country,
                                               sat_type=args.sat_type, year=args.year,
-                                              batch_size=args.batch_size)
+                                              batch_size=args.batch_size,
+                                              use_grouped_labels=args.use_grouped_labels)
 
     model_conv = torchvision.models.resnet18(pretrained=True)
+    if args.preload_model:
+        model_conv.load_state_dict(torch.load("/home/tony/models/{}/saved_model.model".format(args.preload_model)))
 
     if not args.fine_tune:
         for param in model_conv.parameters():
@@ -252,7 +262,7 @@ def main():
     criterion = nn.SmoothL1Loss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
-    optimizer_conv = optim.Adam(params, 1e-3)
+    optimizer_conv = optim.Adam(params, args.lr)
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, args, model_name=model_name, num_epochs=args.epochs, dataloaders=dataloaders,
                                                                           dataset_sizes=dataset_sizes)

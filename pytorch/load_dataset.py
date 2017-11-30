@@ -9,12 +9,6 @@ from torchvision import transforms, utils
 from PIL import Image
 from utils import load_bangladesh_2015_tiff, load_india_tiff
 
-# from https://discuss.pytorch.org/t/load-tiff-images-to-dataset/8593/3
-from torchvision.datasets import ImageFolder
-from torchvision.datasets.folder import IMG_EXTENSIONS
-IMG_EXTENSIONS.append('tiff')
-IMG_EXTENSIONS.append('tif')
-
 
 def clean_household_data(csv_file, sat_type):
     """
@@ -33,7 +27,8 @@ def clean_household_data(csv_file, sat_type):
 
 class BangladeshDataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8", year=2015):
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8", year=2015,
+                 use_grouped_labels=False):
         """
         Args:
          - csv_file (string): Path to the csv file with annotations.
@@ -48,17 +43,15 @@ class BangladeshDataset(Dataset):
         self.target_transform = target_transform
         self.sat_type = sat_type
         self.year = year
-
         self.households = clean_household_data(csv_file, sat_type)
+        self.use_grouped_labels = use_grouped_labels
+        self.groupeded_labels = None
+        if use_grouped_labels:
+            self.grouped_labels = self.households.groupby("District")["totexp_m_pc"].mean()
 
     def __len__(self):
         return len(self.households)
 
-
-    """
-    for tiffs in file
-    ---------------------------------------------
-    """
     def __getitem__(self, idx):
         hhid = self.households["a01"][idx]
         prefix = self.sat_type
@@ -71,7 +64,12 @@ class BangladeshDataset(Dataset):
 
         # transpose makes shape image.shape = (500, 500, 3)
         image = Image.fromarray(image.transpose((1, 2, 0)))
-        expenditure = self.households["totexp_m_pc"][idx]
+
+        if self.use_grouped_labels:
+            district = self.households["District"][idx]
+            expenditure = self.grouped_labels[district]
+        else:
+            expenditure = self.households["totexp_m_pc"][idx]
 
         if self.transform:
             image = self.transform(image)
@@ -83,7 +81,8 @@ class BangladeshDataset(Dataset):
 
 class BangladeshDatasetJpegs(Dataset):
 
-    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8"):
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="l8",
+                 use_grouped_labels=False):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -100,11 +99,6 @@ class BangladeshDatasetJpegs(Dataset):
     def __len__(self):
         return len(self.households)
 
-
-    """
-    for jpegs in file
-    ---------------------------------------------
-    """
     def __getitem__(self, idx):
         hhid = self.households["a01"][idx]
         hhid = str(hhid).replace('.', '-')
