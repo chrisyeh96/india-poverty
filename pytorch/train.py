@@ -262,8 +262,7 @@ def main():
     if use_gpu:
         model_conv = model_conv.cuda()
 
-    criterion = nn.MSELoss()
-    #criterion = nn.SmoothL1Loss()
+    criterion = nn.SmoothL1Loss()
 
     params = model_conv.parameters() if args.fine_tune else model_conv.fc.parameters()
     optimizer_conv = optim.Adam(params, args.lr)
