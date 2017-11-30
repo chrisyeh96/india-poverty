@@ -28,12 +28,9 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir, cou
                  sat_type="l8", year=2015, batch_size=128, use_grouped_labels=False):
     data_transforms = {
         "train": transforms.Compose([
-<<<<<<< HEAD
             transforms.Scale(224),
-=======
             transforms.CenterCrop(224),
             transforms.RandomHorizontalFlip(),
->>>>>>> fa179a8edc783c2d0068f0a5a0b3676f33f57ffd
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
