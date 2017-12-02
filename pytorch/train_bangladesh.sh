@@ -4,7 +4,6 @@ python3 train.py \
   --sat-type=s1 \
   --country=bangladesh \
   --log_epoch_interval=5 \
-  --name=bangladesh_g_s1_2015_pretrained \
+  --name=bangladesh_v_s1_2015 \
   --lr=1e-4 \
-  --preload-model=india_s1_2015_scaled_latest \
   --use-grouped-labels
