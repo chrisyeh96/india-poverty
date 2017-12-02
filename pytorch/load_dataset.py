@@ -135,8 +135,6 @@ class IndiaDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.sat_type = sat_type
-        nonzero_exp = self.df["secc_cons_per_cap_scaled"] > 0
-        self.df = self.df[nonzero_exp]
         self.df = self.df.reset_index()
 
     def __len__(self):
