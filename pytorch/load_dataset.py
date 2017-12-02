@@ -121,7 +121,8 @@ class BangladeshDatasetJpegs(Dataset):
 
 class IndiaDataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, sat_type="s1", year=2015):
+    def __init__(self, csv_file, root_dir, transform=None, target_transform=None, 
+                 sat_type="s1", year=2015, use_grouped_labels=False):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
