@@ -21,7 +21,6 @@ def clean_household_data(csv_file, sat_type):
     exists = households["a01"].apply(lambda z: "{}_median_{}_{}_500x500_{:.1f}.tif".format(sat_type, "bangladesh", "vis", z) in bucket_files)
     duplicate = households["a01"].apply(lambda z: str(z)[-1] == '0')
     households = households[np.logical_and(exists, duplicate)]
-    #households = households[exists]
     households = households[pd.notnull(households['totexp_m_pc'])]
     households = households.reset_index()
     return households
@@ -135,6 +134,7 @@ class IndiaDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.sat_type = sat_type
+        self.df = self.df[~np.isnan(self.df["secc_cons_per_cap_scaled"])]
         self.df = self.df.reset_index()
 
     def __len__(self):
