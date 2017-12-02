@@ -47,9 +47,9 @@ class BangladeshDataset(Dataset):
         self.year = year
         self.households = clean_household_data(csv_file, sat_type)
         self.use_grouped_labels = use_grouped_labels
-        self.groupeded_labels = None
+        self.grouped_labels = None
         if use_grouped_labels:
-            self.grouped_labels = self.households.groupby("District")["totexp_m_pc"].mean()
+            self.grouped_labels = self.households.groupby("Village")["totexp_m_pc"].mean()
 
     def __len__(self):
         return len(self.households)
@@ -68,8 +68,8 @@ class BangladeshDataset(Dataset):
         image = Image.fromarray(image.transpose((1, 2, 0)))
 
         if self.use_grouped_labels:
-            district = self.households["District"][idx]
-            expenditure = self.grouped_labels[district]
+            village = self.households["Village"][idx]
+            expenditure = self.grouped_labels[village]
         else:
             expenditure = self.households["totexp_m_pc"][idx]
 

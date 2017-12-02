@@ -29,7 +29,6 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir, cou
     data_transforms = {
         "train": transforms.Compose([
             transforms.Scale(224),
-            transforms.CenterCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -203,9 +202,9 @@ def main():
                                   help="2015 or 2011")
     arg_parser.add_argument("--lr", type=float, default=1e-4,
                                   help="learning rate")
-    arg_parser.add_argument("--batch_size", type=int, default=128,
+    arg_parser.add_argument("--batch-size", type=int, default=128,
                                   help="batch size")
-    arg_parser.add_argument("--log_epoch_interval", type=int, default=20,
+    arg_parser.add_argument("--log-epoch-interval", type=int, default=20,
                                   help="how often to update epochs")
     arg_parser.add_argument("--preload-model", type=str, default=None,
                                   help="directory of stored model")
@@ -230,8 +229,8 @@ def main():
     print("====================================")
     print()
 
-    train_data_dir = "{}/data/{}_{}".format(home_dir, args.sat_type, args.year)
-    val_data_dir = "{}/data/{}_{}".format(home_dir, args.sat_type, args.year)
+    train_data_dir = "{}/tiffs".format(home_dir)
+    val_data_dir = "{}/tiffs".format(home_dir)
 
     if args.country == "bangladesh":
         train_csv_path = "../data/bangladesh_2015_train.csv"
