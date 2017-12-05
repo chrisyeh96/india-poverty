@@ -1,9 +1,11 @@
-python3 train.py \
-  --verbose \
-  --epochs=10 \
-  --sat-type=s1 \
-  --country=india \
-  --log-epoch-interval=1 \
-  --name=india_s1_2015_scaled_zscores \
-  --lr=5e-5 \
-  --preload-model=india_s1_2015_scaled
+python train.py \
+  --name=bangladesh_l8_2015_scaled_zscores_grouped_lr3_wd1 \
+  --epochs=100 \
+  --fine-tune=True \
+  --country=bangladesh \
+  --sat-type=l8 \
+  --lr=1e-3 \
+  --weight-decay=1 \
+  --batch-size=32 \
+  --log-epoch-interval=50 \
+  --use-grouped-labels 

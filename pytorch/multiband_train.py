@@ -41,21 +41,23 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir, cou
         ]),
     }
 
-    if country == "bangladesh":
-        dataset = BangladeshDataset
-    elif country == "india":
-        dataset = IndiaDataset
-    else:
-        raise NotImplementedError("Nope")
+    dataset = BangladeshMultibandDataset
+    multi_mean = [0.485, 0.456, 0.406,0,0,0]
+    multi_std = [0.229, 0.224, 0.225,1,1,1]
+
 
     train_dataset = dataset(csv_file=train_csv_path,
                             root_dir=train_data_dir,
-                            transform=data_transforms["train"],
-                            sat_type=sat_type, year=year, use_grouped_labels=use_grouped_labels)
+                            sat_type=sat_type,
+                            mean = multi_mean,
+                            std = multi_std, 
+                            use_grouped_labels=use_grouped_labels)
     val_dataset = dataset(csv_file=val_csv_path,
                           root_dir=val_data_dir,
-                          transform=data_transforms["val"],
-                          sat_type=sat_type, year=year, use_grouped_labels=use_grouped_labels)
+                          sat_type=sat_type,
+                          mean = multi_mean,
+                          std = multi_std, 
+                          use_grouped_labels=use_grouped_labels)
 
     image_datasets = {"train": train_dataset, "val": val_dataset}
 
@@ -255,12 +257,15 @@ def main():
     print("====================================")
     print()
 
-    train_data_dir = "{}/tiffs/{}_{}".format(home_dir, args.sat_type, args.year)
-    val_data_dir = "{}/tiffs/{}_{}".format(home_dir, args.sat_type, args.year)
+    # train_data_dir = "{}/tiffs/{}_{}".format(home_dir, args.sat_type, args.year)
+    # val_data_dir = "{}/tiffs/{}_{}".format(home_dir, args.sat_type, args.year)
+    train_data_dir = '/home/hmishfaq/multiband2015_bd_tiff'
+    val_data_dir = '/home/hmishfaq/multiband2015_bd_tiff'
+
 
     if args.country == "bangladesh":
-        train_csv_path = "../data/bangladesh_2015_train.csv"
-        val_csv_path = "../data/bangladesh_2015_valid.csv"
+        train_csv_path = '~/predicting-poverty/data/bangladesh_2015_train.csv'#"../data/bangladesh_2015_train.csv"
+        val_csv_path = '~/predicting-poverty/data/bangladesh_2015_valid.csv'#"../data/bangladesh_2015_valid.csv"
     elif args.country == "india":
         train_csv_path = "../data/india_train.csv"
         val_csv_path = "../data/india_valid.csv"
@@ -282,6 +287,7 @@ def main():
             param.requires_grad = False
 
     num_ftrs = model_conv.fc.in_features
+    model_conv.conv1 = nn.Conv2d(6, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
     model_conv.fc = nn.Linear(num_ftrs, 1)
 
     if use_gpu:
