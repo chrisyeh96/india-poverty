@@ -93,7 +93,7 @@ class BangladeshDataset(Dataset):
 class BangladeshMultibandDataset(Dataset):
     """Bangladesh Poverty dataset."""
 
-    def __init__(self, csv_file, root_dir,sat_type="l8",mean=[0,0,0],std=[1,1,1],use_grouped_labels=False):
+    def __init__(self, csv_file, root_dir,sat_type="l8",mean=[0,0,0],std=[1,1,1],use_grouped_labels=False,target_transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -102,8 +102,10 @@ class BangladeshMultibandDataset(Dataset):
                 on a sample.
         """
         self.root_dir = root_dir
+        self.target_transform = target_transform
         self.sat_type = sat_type
-        self.year = year
+        self.mean = np.array(mean)
+        self.std = np.array(std)
         self.households = clean_household_data(csv_file, sat_type)
         self.use_grouped_labels = use_grouped_labels
         self.grouped_labels = None
@@ -139,8 +141,9 @@ class BangladeshMultibandDataset(Dataset):
         image = load_bangladesh_2015_tiff(self.root_dir, hhid, prefix, imgtype, quiet=True)
         # transpose makes shape image.shape = (500, 500, 3) #for multiband 6
         image = image.transpose((1, 2, 0))
-        image = data.astype(np.uint8)
-        image = tf.resize(data, (224, 224, 6), order=0)
+        # image = image.astype(np.uint8)
+        image = crop_center(image,self.crop_size,self.crop_size)
+        # image = tf.resize(image, (224, 224, 6), order=0)
         # image_rgb = image[:,:,:3]
         # image_rgb = Image.fromarray(image_rgb)
         # image_nonrgb = image[:,:,3:]

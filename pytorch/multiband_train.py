@@ -13,7 +13,7 @@ from scipy.stats import pearsonr
 from torch.autograd import Variable
 from torchvision import datasets, models, transforms
 from sklearn import metrics
-from load_dataset import BangladeshDataset, IndiaDataset
+from load_dataset import BangladeshDataset, IndiaDataset, BangladeshMultibandDataset
 
 
 ######################################################################
