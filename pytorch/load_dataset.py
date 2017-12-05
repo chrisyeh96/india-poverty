@@ -10,6 +10,12 @@ from PIL import Image
 from utils import load_bangladesh_2015_tiff, load_india_tiff
 from skimage import transform as tf
 
+def crop_center(img,cropx,cropy):
+    y,x,c = img.shape
+    startx = x//2-(cropx//2)
+    starty = y//2-(cropy//2)    
+    return img[starty:starty+cropy,startx:startx+cropx,:]
+
 
 
 def clean_household_data(csv_file, sat_type):
@@ -142,7 +148,7 @@ class BangladeshMultibandDataset(Dataset):
         # transpose makes shape image.shape = (500, 500, 3) #for multiband 6
         image = image.transpose((1, 2, 0))
         # image = image.astype(np.uint8)
-        image = crop_center(image,self.crop_size,self.crop_size)
+        image = crop_center(image,224,224)
         # image = tf.resize(image, (224, 224, 6), order=0)
         # image_rgb = image[:,:,:3]
         # image_rgb = Image.fromarray(image_rgb)
