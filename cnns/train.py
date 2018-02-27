@@ -30,12 +30,14 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir,
       transforms.CenterCrop(224),
       transforms.RandomHorizontalFlip(),
       transforms.ToTensor(),
-      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+      transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                           std=[0.229, 0.224, 0.225])
     ]),
     "val": transforms.Compose([
       transforms.CenterCrop(224),
       transforms.ToTensor(),
-      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+      transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                           std=[0.229, 0.224, 0.225])
     ]),
   }
 
@@ -260,7 +262,8 @@ if __name__ == "__main__":
   model_conv = torchvision.models.resnet18(pretrained=True)
 
   if args.preload_model:
-    model_data = torch.load("{}/predicting-poverty/models/{}/saved_model.model".format(home_dir, args.preload_model))
+    model_path = "{}/predicting-poverty/models/{}/saved_model.model".format(home_dir, args.preload_model)
+    model_data = torch.load(model_path)
     model_conv.load_state_dict(model_data)
 
   if not args.fine_tune:

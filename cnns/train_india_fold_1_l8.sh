@@ -9,5 +9,5 @@ python3 train.py \
   --label=secc_cons_per_cap_scaled \
   --fine-tune \
   --lr=1e-4 \
-  --weight-decay=0.5 
+  --weight-decay=1e-5
 

@@ -20,6 +20,7 @@ def stratify_kfold(df, n_folds=5):
   for fold in folds:
     test = df[df["district_idx"].isin(fold)]
     train = df[~df["district_idx"].isin(fold)]
+    train = train.sample(frac=1.0)
     valid = train.iloc[:len(train)//5,:]
     train = train.iloc[len(train)//5:,:]
     result.append({
