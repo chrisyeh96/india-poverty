@@ -4,8 +4,8 @@ python3 train.py \
   --sat-type=l8 \
   --country=india \
   --log-epoch-interval=1 \
-  --name=fold_1_l8 \
-  --data-subdir=fold_1 \
+  --name=fold_5_l8 \
+  --data-subdir=fold_5 \
   --label=secc_cons_per_cap_scaled \
   --fine-tune \
   --lr=1e-5 \

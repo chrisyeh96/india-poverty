@@ -6,8 +6,10 @@ import gdal
 import os
 from multiprocessing import Pool
 from shapely.geometry import Polygon, Point
+from sklearn.cluster import AgglomerativeClustering
 from tqdm import tqdm
 from geotiling import GeoProps
+from geopy.distance import vincenty
 
 
 def load_dataset():
@@ -81,10 +83,22 @@ def load_state_data(india_df):
   district_shapes = shapefile.Reader("../data/india_shape_files/IND_adm2").shapes()
   district_shape_points = [shape.points for shape in district_shapes]
   district_polygons = [Polygon(p) for p in district_shape_points]
+  taluk_shapes = shapefile.Reader("../data/india_shape_files/IND_adm3").shapes()
+  taluk_shape_points = [shape.points for shape in taluk_shapes]
+  taluk_polygons = [Polygon(p) for p in taluk_shape_points]
 
-  geography_df = pd.read_csv("../data/india_shape_files/IND_adm2.csv")
+  district_centroids = [(p.centroid.x, p.centroid.y) for i, p in enumerate(district_polygons)]
+  clustering = AgglomerativeClustering(n_clusters=100)
+  pred_clusters = clustering.fit_predict(district_centroids)
+  district_idx_to_cluster_mapping = {i: c for i, c in enumerate(pred_clusters)}
+  district_idx_to_cluster_mapping[-1] = -1
+
+  states_df = pd.read_csv("../data/india_shape_files/IND_adm1.csv")
+  districts_df = pd.read_csv("../data/india_shape_files/IND_adm2.csv")
+  taluks_df = pd.read_csv("../data/india_shape_files/IND_adm3.csv")
   state_names = np.zeros(len(india_df), dtype=str)
   district_names = np.zeros(len(india_df), dtype=str)
+  taluk_names = np.zeros(len(india_df), dtype=str)
 
   def _get_data_for_idx(i):
     row = india_df.iloc[i,:]
@@ -93,21 +107,27 @@ def load_state_data(india_df):
     state_idx = np.argmax(contains) if np.any(contains) else -1
     contains = [p.contains(point) for p in district_polygons]
     district_idx = np.argmax(contains) if np.any(contains) else -1
-    return state_idx, district_idx
+    contains = [p.contains(point) for p in taluk_polygons]
+    taluk_idx = np.argmax(contains) if np.any(contains) else -1
+    return state_idx, district_idx, taluk_idx
 
   print("Loading village state data...")
   with Pool(os.cpu_count()) as pool:
-    state_district_idxs = list(tqdm(pool.imap(_get_data_for_idx,
+    idxs = list(tqdm(pool.imap(_get_data_for_idx,
                                               range(len(india_df))),
                                     total=len(india_df)))
-  state_idxs = np.array(state_district_idxs)[:,0]
-  district_idxs = np.array(state_district_idxs)[:,1]
-  state_names = np.array(geography_df["NAME_1"][state_idxs].reset_index().iloc[:,1])
+  state_idxs = np.array(idxs)[:,0]
+  district_idxs = np.array(idxs)[:,1]
+  taluk_idxs = np.array(idxs)[:,2]
+  state_names = np.array(states_df["NAME_1"][state_idxs].reset_index().iloc[:,1])
   state_names[state_idxs < 0] = ""
-  district_names = np.array(geography_df["NAME_2"][district_idxs].reset_index().iloc[:,1])
+  district_names = np.array(districts_df["NAME_2"][district_idxs].reset_index().iloc[:,1])
   district_names[district_idxs < 0] = ""
+  taluk_names = np.array(taluks_df["NAME_3"][taluk_idxs].reset_index().iloc[:,1])
+  taluk_names[taluk_idxs < 0] = ""
 
-  return state_idxs, state_names, district_idxs, district_names
+  cluster_idxs = np.array([district_idx_to_cluster_mapping[i] for i in district_idxs])
+  return state_idxs, state_names, district_idxs, district_names, taluk_idxs, taluk_names, cluster_idxs
 
 def z_transform(col):
   mu = np.mean(col)
@@ -140,16 +160,19 @@ if __name__ == "__main__":
   india_df["viirs"] = load_viirs_data(india_df)
 
   print("Gathering state data...")
-  state_idxs, state_names, district_idxs, district_names = load_state_data(india_df)
+  state_idxs, state_names, district_idxs, district_names, taluk_idxs, taluk_names, cluster_idxs = load_state_data(india_df)
   india_df["state_idx"] = state_idxs
   india_df["state_name"] = state_names
   india_df["district_idx"] = district_idxs
   india_df["district_name"] = district_names
+  india_df["taluk_idx"] = taluk_idxs
+  india_df["taluk_name"] = taluk_names
+  india_df["cluster_idx"] = cluster_idxs
 
   # filter out missing states
   india_df = india_df[india_df["state_idx"] >= 0]
 
   print("Saving to CSV...")
-  india_df["secc_cons_per_cap_scaled"] = z_transform(india_df["secc_cons_per_cap_scaled"])
+  # india_df["secc_cons_per_cap_scaled"] = z_transform(india_df["secc_cons_per_cap_scaled"])
   india_df.to_csv("../data/india_processed.csv", index=False)
 

@@ -25,16 +25,18 @@ print("Using GPU:", use_gpu)
 def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir,
                  country, label, sat_type="s1", year=2015, batch_size=128,
                  train_frac=1.0):
+  if sat_type == "s1":
+    sat_transforms = [transforms.CenterCrop(300), transforms.Resize(224)]
+  else:
+    sat_transforms = [transforms.CenterCrop(100), transforms.Resize(224)]
   data_transforms = {
-    "train": transforms.Compose([
-      transforms.CenterCrop(224),
+    "train": transforms.Compose(sat_transforms + [
       transforms.RandomHorizontalFlip(),
       transforms.ToTensor(),
       transforms.Normalize(mean=[0.485, 0.456, 0.406],
                            std=[0.229, 0.224, 0.225])
     ]),
-    "val": transforms.Compose([
-      transforms.CenterCrop(224),
+    "val": transforms.Compose(sat_transforms + [
       transforms.ToTensor(),
       transforms.Normalize(mean=[0.485, 0.456, 0.406],
                            std=[0.229, 0.224, 0.225])
@@ -191,33 +193,19 @@ if __name__ == "__main__":
 
   arg_parser = argparse.ArgumentParser()
 
-  arg_parser.add_argument("--name", type=str, default=None,
-                  help="name for the model")
-  arg_parser.add_argument("--epochs", type=int, default=10,
-                  help="number of training epochs, default=10")
-  arg_parser.add_argument("--country", type=str, default="bangladesh",
-                  help="bangladesh or india")
-  arg_parser.add_argument("--sat-type", type=str, default="s1",
-                  help="l8 or s1")
-  arg_parser.add_argument("--year", type=int, default=2015,
-                  help="2015 or 2011")
-  arg_parser.add_argument("--label", type=str,
-                  default="secc_cons_per_cap_scaled",
-                  help="which label to use in the csv")
-  arg_parser.add_argument("--train_frac", type=float, default=1.0,
-                  help="fraction of training data to use")
-  arg_parser.add_argument("--lr", type=float, default=1e-5,
-                  help="learning rate")
-  arg_parser.add_argument("--weight-decay", type=float, default=0,
-                  help="weight decay")
-  arg_parser.add_argument("--batch-size", type=int, default=128,
-                  help="batch size")
-  arg_parser.add_argument("--log-epoch-interval", type=int, default=20,
-                  help="how often to update epochs")
-  arg_parser.add_argument("--preload-model", type=str, default=None,
-                  help="directory of stored model")
+  arg_parser.add_argument("--name", type=str, default=None,)
+  arg_parser.add_argument("--epochs", type=int, default=10,)
+  arg_parser.add_argument("--country", type=str, default="india")
+  arg_parser.add_argument("--sat-type", type=str, default="s1")
+  arg_parser.add_argument("--year", type=int, default=2015)
+  arg_parser.add_argument("--label", type=str, default="secc_cons_per_cap_scaled")
+  arg_parser.add_argument("--train_frac", type=float, default=1.0)
+  arg_parser.add_argument("--lr", type=float, default=1e-5)
+  arg_parser.add_argument("--weight-decay", type=float, default=0)
+  arg_parser.add_argument("--batch-size", type=int, default=128)
+  arg_parser.add_argument("--log-epoch-interval", type=int, default=20)
+  arg_parser.add_argument("--preload-model", type=str, default=None)
   arg_parser.add_argument("--data-subdir", type=str, default=None)
-  arg_parser.add_argument("--use-grouped-labels", action="store_true")
   arg_parser.add_argument("--fine-tune", dest="fine_tune", action="store_true")
   arg_parser.add_argument("--no-fine-tune", dest="fine_tune", action="store_false")
   arg_parser.add_argument("--verbose", action="store_true")
@@ -245,14 +233,8 @@ if __name__ == "__main__":
   train_data_dir = "{}/imagery".format(home_dir)
   val_data_dir = "{}/imagery".format(home_dir)
 
-  if args.country == "bangladesh":
-    train_csv_path = "../data/bangladesh_2015_train.csv"
-    val_csv_path = "../data/bangladesh_2015_valid.csv"
-  elif args.country == "india":
-    train_csv_path = "../data/{}/train.csv".format(args.data_subdir)
-    val_csv_path = "../data/{}/valid.csv".format(args.data_subdir)
-  else:
-    raise NotImplementedError("Not implemented")
+  train_csv_path = "../data/{}/train.csv".format(args.data_subdir)
+  val_csv_path = "../data/{}/valid.csv".format(args.data_subdir)
 
   dataloaders, dataset_sizes = load_dataset(train_csv_path, val_csv_path,
                         train_data_dir, val_data_dir, args.country, args.label,
@@ -271,13 +253,8 @@ if __name__ == "__main__":
       param.requires_grad = False
 
   num_ftrs = model_conv.fc.in_features
-
-  if args.label == "secc_pov_rate":
-    criterion = nn.BCELoss()
-    model_conv.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-  else:
-    criterion = nn.MSELoss()
-    model_conv.fc = nn.Linear(num_ftrs, 1)
+  model_conv.fc = nn.Linear(num_ftrs, 1)
+  criterion = nn.MSELoss()
 
   if use_gpu:
     model_conv = model_conv.cuda()

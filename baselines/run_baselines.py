@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import cv2
 import os
-
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -54,6 +53,7 @@ def run_knn_model(X_train, X_valid, y_train, y_valid):
   gp.fit(X_train, y_train)
   print_hr("KNN")
   print("R^2:", gp.score(X_valid, y_valid))
+  print("R^2 no outliers:", gp.score(X_valid[y_valid < 3], y_valid[y_valid < 3]))
 
 
 if __name__ == "__main__":
@@ -68,15 +68,16 @@ if __name__ == "__main__":
 
   print_hr("Loading datasets...")
 
-  india = pd.read_csv("../preprocessing/india_processed.csv")
+  india = pd.read_csv("../data/india_processed.csv")
   india_train = pd.read_csv("../data/{}/train.csv".format(args.data_subdir))
-  india_valid = pd.read_csv("../data/{}/valid.csv".format(args.data_subdir))
+  india_valid = pd.read_csv("../data/{}/test.csv".format(args.data_subdir))
+  # india_test = pd.read_csv("../data/{}/test.csv".format(args.data_subdir))
 
-  print_hr("Correlation India | VIIRS")
-  print("r:", india["viirs"].corr(india[args.label]))
+  # print_hr("Correlation India | VIIRS")
+  # print("r:", india["viirs"].corr(india[args.label]))
 
-  print_hr("Correlation India | DMSP")
-  print("r:", india["dmsp"].corr(india[args.label]))
+  # print_hr("Correlation India | DMSP")
+  # print("r:", india["dmsp"].corr(india[args.label]))
 
   india_train = india_train.sample(frac=args.frac)
 
