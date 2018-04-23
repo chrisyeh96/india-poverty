@@ -81,6 +81,7 @@ if __name__ == "__main__":
   arg_parser.add_argument("--label", type=str, default="secc_cons_per_cap_scaled")
   arg_parser.add_argument("--batch-size", type=int, default=128)
   arg_parser.add_argument("--data-subdir", type=str, default=None)
+  arg_parser.add_argument("--model-name", type=str, default=None)
   arg_parser.add_argument("--verbose", action="store_true")
   arg_parser.add_argument("--save-results", action="store_true")
   arg_parser.set_defaults(fine_tune=True)
@@ -109,12 +110,12 @@ if __name__ == "__main__":
   model_s1 = torchvision.models.resnet18(pretrained=True)
   num_ftrs = model_s1.fc.in_features
   model_s1.fc = nn.Linear(num_ftrs, 1)
-  model_path = "{}/predicting-poverty/models/{}_s1/saved_model.model".format(home_dir, args.data_subdir)
+  model_path = "{}/predicting-poverty/models/{}_s1{}/saved_model.model".format(home_dir, args.model_name[:6], args.model_name[6:])
   model_s1.load_state_dict(torch.load(model_path))
 
   model_l8 = torchvision.models.resnet18(pretrained=True)
   model_l8.fc = nn.Linear(num_ftrs, 1)
-  model_path = "{}/predicting-poverty/models/{}_l8/saved_model.model".format(home_dir, args.data_subdir)
+  model_path = "{}/predicting-poverty/models/{}_l8{}/saved_model.model".format(home_dir, args.model_name[:6], args.model_name[6:])
   model_l8.load_state_dict(torch.load(model_path))
 
   if use_gpu:
@@ -135,9 +136,16 @@ if __name__ == "__main__":
   print("No outliers:", metrics.r2_score(y_true_s1[y_true_s1 < 3], y_pred_joint[y_true_s1 < 3]))
   print("Correlation:", sp.stats.pearsonr(y_pred_l8, y_pred_s1))
 
-  if args.save_results:
+  if args.save_results and args.country == "india":
 
-    os.mkdir("../results/{}".format(args.data_subdir))
-    np.save("../results/{}/y_true.npy".format(args.data_subdir), y_true_s1)
-    np.save("../results/{}/y_pred_l8.npy".format(args.data_subdir), y_pred_l8)
-    np.save("../results/{}/y_pred_s1.npy".format(args.data_subdir), y_pred_s1)
+    os.mkdir("../results/{}".format(args.model_name))
+    np.save("../results/{}/y_true.npy".format(args.model_name), y_true_s1)
+    np.save("../results/{}/y_pred_l8.npy".format(args.model_name), y_pred_l8)
+    np.save("../results/{}/y_pred_s1.npy".format(args.model_name), y_pred_s1)
+
+  if args.save_results and args.country == "bangladesh":
+
+    os.mkdir("../results/bangladesh")
+    np.save("../results/bangladesh/y_true.npy", y_true_s1)
+    np.save("../results/bangladesh/y_pred_l8.npy", y_pred_l8)
+    np.save("../results/bangladesh/y_pred_s1.npy", y_pred_s1)

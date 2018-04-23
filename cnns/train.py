@@ -59,7 +59,7 @@ def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir,
                         root_dir=val_data_dir,
                         label=label,
                         transform=data_transforms["val"],
-                        sat_type=sat_type, year=year, frac=1.0)
+                        sat_type=sat_type, year=year, frac=train_frac)
 
   image_datasets = {
     "train": train_dataset,
@@ -199,7 +199,7 @@ if __name__ == "__main__":
   arg_parser.add_argument("--sat-type", type=str, default="s1")
   arg_parser.add_argument("--year", type=int, default=2015)
   arg_parser.add_argument("--label", type=str, default="secc_cons_per_cap_scaled")
-  arg_parser.add_argument("--train_frac", type=float, default=1.0)
+  arg_parser.add_argument("--train-frac", type=float, default=1.0)
   arg_parser.add_argument("--lr", type=float, default=1e-5)
   arg_parser.add_argument("--weight-decay", type=float, default=0)
   arg_parser.add_argument("--batch-size", type=int, default=128)

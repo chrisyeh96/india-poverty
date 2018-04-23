@@ -61,9 +61,9 @@ class IndiaDataset(Dataset):
     self.target_transform = target_transform
     self.sat_type = sat_type
     self.df = self.df[~np.isnan(self.df[self.label])]
-    self.df = self.df.reset_index()
     if frac < 1:
       self.df = self.df.sample(frac=frac)
+    self.df = self.df.reset_index()
 
   def __len__(self):
     return len(self.df)
