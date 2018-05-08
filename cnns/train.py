@@ -253,8 +253,12 @@ if __name__ == "__main__":
       param.requires_grad = False
 
   num_ftrs = model_conv.fc.in_features
-  model_conv.fc = nn.Linear(num_ftrs, 1)
-  criterion = nn.MSELoss()
+  if args.label == "secc_cons_per_cap_scaled" or args.label == "secc_pov_rate":
+    model_conv.fc = nn.Linear(num_ftrs, 1)
+    criterion = nn.MSELoss()
+  else:
+    model_conv.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
+    criterion = nn.BCELoss()
 
   if use_gpu:
     model_conv = model_conv.cuda()

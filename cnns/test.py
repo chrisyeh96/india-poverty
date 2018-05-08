@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import scipy as sp
 import torch.optim as optim
 import torchvision
@@ -50,7 +51,7 @@ def load_dataset(test_csv_path, data_dir, country, label, sat_type="s1", year=20
   return test_dataloader
 
 
-def test_model(model, dataloader):
+def test_model(model, dataloader, args):
 
   y_true = []
   y_pred = []
@@ -69,6 +70,8 @@ def test_model(model, dataloader):
       inputs, labels = Variable(inputs), Variable(labels.float())
 
     outputs = model(inputs)
+    if args.label == "secc_pov_rate":
+      outputs = F.sigmoid(outputs)
     y_pred += outputs.data.squeeze().cpu().numpy().tolist()
 
   return y_true, y_pred
@@ -109,12 +112,19 @@ if __name__ == "__main__":
 
   model_s1 = torchvision.models.resnet18(pretrained=True)
   num_ftrs = model_s1.fc.in_features
-  model_s1.fc = nn.Linear(num_ftrs, 1)
+  if args.label == "secc_cons_per_cap_scaled":
+    model_s1.fc = nn.Linear(num_ftrs, 1)
+  else:
+    model_s1.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
   model_path = "{}/predicting-poverty/models/{}_s1{}/saved_model.model".format(home_dir, args.model_name[:6], args.model_name[6:])
   model_s1.load_state_dict(torch.load(model_path))
 
   model_l8 = torchvision.models.resnet18(pretrained=True)
-  model_l8.fc = nn.Linear(num_ftrs, 1)
+  num_ftrs = model_l8.fc.in_features
+  if args.label == "secc_cons_per_cap_scaled":
+    model_l8.fc = nn.Linear(num_ftrs, 1)
+  else:
+    model_l8.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
   model_path = "{}/predicting-poverty/models/{}_l8{}/saved_model.model".format(home_dir, args.model_name[:6], args.model_name[6:])
   model_l8.load_state_dict(torch.load(model_path))
 
@@ -122,8 +132,8 @@ if __name__ == "__main__":
     model_s1 = model_s1.cuda()
     model_l8 = model_l8.cuda()
 
-  y_true_s1, y_pred_s1 = test_model(model_s1, s1_data)
-  y_true_l8, y_pred_l8 = test_model(model_l8, l8_data)
+  y_true_s1, y_pred_s1 = test_model(model_s1, s1_data, args)
+  y_true_l8, y_pred_l8 = test_model(model_l8, l8_data, args)
 
   y_true_s1, y_true_l8 = np.array(y_true_s1), np.array(y_true_l8)
   y_pred_s1, y_pred_l8 = np.array(y_pred_s1), np.array(y_pred_l8)

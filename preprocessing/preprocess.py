@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
+import shapely.geometry as sgeom
 import shapefile
 import gdal
 import os
@@ -78,15 +79,11 @@ def load_state_data(india_df):
   global _get_data_for_idx
 
   state_shapes = shapefile.Reader("../data/india_shape_files/IND_adm1").shapes()
-  state_shape_points = [shape.points for shape in state_shapes]
-  state_polygons = [Polygon(p) for p in state_shape_points]
+  state_polygons = [sgeom.shape(s.__geo_interface__) for s in state_shapes]
   district_shapes = shapefile.Reader("../data/india_shape_files/IND_adm2").shapes()
-  district_shape_points = [shape.points for shape in district_shapes]
-  district_polygons = [Polygon(p) for p in district_shape_points]
+  district_polygons = [sgeom.shape(s.__geo_interface__) for s in district_shapes]
   taluk_shapes = shapefile.Reader("../data/india_shape_files/IND_adm3").shapes()
-  taluk_shape_points = [shape.points for shape in taluk_shapes]
-  taluk_polygons = [Polygon(p) for p in taluk_shape_points]
-
+  taluk_polygons = [sgeom.shape(s.__geo_interface__) for s in taluk_shapes]
   district_centroids = [(p.centroid.x, p.centroid.y) for i, p in enumerate(district_polygons)]
   clustering = AgglomerativeClustering(n_clusters=100)
   pred_clusters = clustering.fit_predict(district_centroids)
@@ -129,12 +126,6 @@ def load_state_data(india_df):
   cluster_idxs = np.array([district_idx_to_cluster_mapping[i] for i in district_idxs])
   return state_idxs, state_names, district_idxs, district_names, taluk_idxs, taluk_names, cluster_idxs
 
-def z_transform(col):
-  mu = np.mean(col)
-  sd = np.std(col)
-  print("mu, sd:", (mu, sd))
-  return (col - mu) / sd
-
 
 if __name__ == "__main__":
 
@@ -173,6 +164,4 @@ if __name__ == "__main__":
   india_df = india_df[india_df["state_idx"] >= 0]
 
   print("Saving to CSV...")
-  # india_df["secc_cons_per_cap_scaled"] = z_transform(india_df["secc_cons_per_cap_scaled"])
   india_df.to_csv("../data/india_processed.csv", index=False)
-

@@ -86,10 +86,11 @@ if __name__ == "__main__":
     np.save(os.path.join(base_dir, "keep_train.npy"), keep_train)
     np.save(os.path.join(base_dir, "keep_valid.npy"), keep_valid)
     label = pd.concat([fold["train"], fold["valid"]])["secc_cons_per_cap_scaled"]
+    label = np.log(label)
     mu, std = np.mean(label), np.std(label)
     np.save(os.path.join(base_dir, "mu.npy"), mu)
     np.save(os.path.join(base_dir, "std.npy"), std)
     for k, v in fold.items():
       print(k, len(v))
-      v["secc_cons_per_cap_scaled"] = (v["secc_cons_per_cap_scaled"] - mu) / std
+      v["secc_cons_per_cap_scaled"] = (np.log(v["secc_cons_per_cap_scaled"]) - mu) / std
       v.to_csv(os.path.join(base_dir, "{}.csv".format(k)))
