@@ -106,22 +106,22 @@ if __name__ == "__main__":
   test_df = pd.concat(fold_results)
   print_hr("KNN")
   print("R2: %.3f" % r2_score(test_df["true"], test_df["knn"]))
-  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
-                              test_df.groupby("district_idx")["knn"].mean()))
   print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
                               test_df.groupby("taluk_idx")["knn"].mean()))
+  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
+                              test_df.groupby("district_idx")["knn"].mean()))
   print_hr("Ridge")
   print("R2: %.3f" % r2_score(test_df["true"], test_df["ridge"]))
-  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
-                              test_df.groupby("district_idx")["ridge"].mean()))
   print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
                               test_df.groupby("taluk_idx")["ridge"].mean()))
+  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
+                              test_df.groupby("district_idx")["ridge"].mean()))
   print_hr("GBM")
   print("R2: %.3f" % r2_score(test_df["true"], test_df["gbm"]))
-  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
-                              test_df.groupby("district_idx")["gbm"].mean()))
   print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
                               test_df.groupby("taluk_idx")["gbm"].mean()))
+  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
+                              test_df.groupby("district_idx")["gbm"].mean()))
   print_hr("GBM no outliers")
   print("R2: %.3f" % r2_score(test_df["true"][test_df["true"] < 3],
                               test_df["knn"][test_df["true"] < 3]))
