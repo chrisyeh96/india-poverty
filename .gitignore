@@ -6,7 +6,7 @@ data/fold_4
 data/fold_5
 data/backup_folds
 data/bucket
-results/
+results/*.csv
 models/
 
 # Data files
