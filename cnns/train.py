@@ -208,6 +208,7 @@ if __name__ == "__main__":
   arg_parser.add_argument("--data-subdir", type=str, default=None)
   arg_parser.add_argument("--fine-tune", dest="fine_tune", action="store_true")
   arg_parser.add_argument("--no-fine-tune", dest="fine_tune", action="store_false")
+  arg_parser.add_argument("--no-softmax", dest="no_softmax", action="store_true")
   arg_parser.add_argument("--verbose", action="store_true")
   arg_parser.set_defaults(fine_tune=True)
 
@@ -253,7 +254,7 @@ if __name__ == "__main__":
       param.requires_grad = False
 
   num_ftrs = model_conv.fc.in_features
-  if args.label == "secc_cons_per_cap_scaled" or args.label == "secc_pov_rate":
+  if args.label == "secc_cons_per_cap_scaled":
     model_conv.fc = nn.Linear(num_ftrs, 1)
     criterion = nn.MSELoss()
   else:

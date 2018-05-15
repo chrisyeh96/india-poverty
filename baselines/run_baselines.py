@@ -127,4 +127,7 @@ if __name__ == "__main__":
                               test_df["knn"][test_df["true"] < 3]))
 
 
-  test_df.to_csv("./baseline_results.csv")
+  if args.label == "secc_pov_rate":
+    test_df.to_csv("./baseline_results_pov_rate.csv")
+  else:
+    test_df.to_csv("./baseline_results.csv")

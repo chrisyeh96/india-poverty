@@ -70,8 +70,6 @@ def test_model(model, dataloader, args):
       inputs, labels = Variable(inputs), Variable(labels.float())
 
     outputs = model(inputs)
-    if args.label == "secc_pov_rate":
-      outputs = F.sigmoid(outputs)
     y_pred += outputs.data.squeeze().cpu().numpy().tolist()
 
   return y_true, y_pred
@@ -86,6 +84,7 @@ if __name__ == "__main__":
   arg_parser.add_argument("--data-subdir", type=str, default=None)
   arg_parser.add_argument("--model-name", type=str, default=None)
   arg_parser.add_argument("--verbose", action="store_true")
+  arg_parser.add_argument("--no-softmax", action="store_true")
   arg_parser.add_argument("--save-results", action="store_true")
   arg_parser.set_defaults(fine_tune=True)
 
