@@ -13,6 +13,9 @@ from geotiling import GeoProps
 from geopy.distance import vincenty
 
 
+home_dir = os.path.expanduser("~")
+
+
 def load_dataset():
   """
   Load the India dataframe.
@@ -30,13 +33,14 @@ def load_viirs_data(india_df, diameter=14):
   """
   Load numpy array continaing VIIRS night-lights
   """
-  lights_tif = "../data/bucket/SVDNB_npp_20150101-20151231_75N060E_vcm-orm-ntl_v10_c201701311200.avg_rade9.tif"
+  lights_tif = "%s/nightlights/SVDNB_npp_20150101-20151231_75N060E_vcm-orm-ntl_v10_c201701311200.avg_rade9.tif" % home_dir
+  print("VIIRS", lights_tif)
   viirs_tif = gdal.Open(lights_tif)
   viirs_props = GeoProps()
   viirs_props.import_geogdal(viirs_tif)
   viirs_night_intensities = np.zeros(len(india_df))
 
-  for i, idx in tqdm(enumerate(india_df.index)):
+  for i, idx in tqdm(enumerate(india_df.index), total=len(india_df.index)):
     lat = india_df["latitude"][idx]
     lng = india_df["longitude"][idx]
     x, y = viirs_props.lonlat2colrow(lng, lat)
@@ -53,13 +57,14 @@ def load_dmsp_data(india_df, diameter=7):
   """
   Load numpy array containing DMSP night-lights.
   """
-  lights_tif = "../data/bucket/F182013.v4c_web.stable_lights.avg_vis.tif"
+  lights_tif = "%s/nightlights/F182013.v4c_web.stable_lights.avg_vis.tif" % home_dir
+  print("DMSP", lights_tif)
   dmsp_tif = gdal.Open(lights_tif)
   dmsp_props = GeoProps()
   dmsp_props.import_geogdal(dmsp_tif)
   dmsp_night_intensities = np.zeros(len(india_df))
 
-  for i, idx in tqdm(enumerate(india_df.index)):
+  for i, idx in tqdm(enumerate(india_df.index), total=len(india_df.index)):
     lat = india_df["latitude"][idx]
     lng = india_df["longitude"][idx]
     x, y = dmsp_props.lonlat2colrow(lng, lat)

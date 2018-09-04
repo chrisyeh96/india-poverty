@@ -19,9 +19,32 @@ def stratify_kfold(df, n_folds=5):
   result = []
 
   for fold in folds:
-
     test = df[df["cluster_idx"].isin(fold)]
     train_val = df[~df["cluster_idx"].isin(fold)]
+    train_val_districts = pd.unique(train_val["cluster_idx"])
+    np.random.shuffle(train_val_districts)
+    train_districts = train_val_districts[len(train_val_districts)//5:]
+    valid_districts = train_val_districts[:len(train_val_districts)//5]
+    train = train_val[train_val["cluster_idx"].isin(train_districts)]
+    valid = train_val[train_val["cluster_idx"].isin(valid_districts)]
+    result.append({
+      "train": train,
+      "valid": valid,
+      "test": test
+    })
+  return result
+
+def stratify_by_state(df):
+  """
+  Stratify by state into 36 folds.
+  """
+  result = []
+  union_territories = set([5, 7, 8, 17, 26, 1, 24])
+  for state_idx in range(min(df["state_idx"]), max(df["state_idx"]) + 1):
+    if state_idx in union_territories:
+      continue
+    test = df[df["state_idx"] == state_idx]
+    train_val = df[df["state_idx"] != state_idx]
     train_val_districts = pd.unique(train_val["cluster_idx"])
     np.random.shuffle(train_val_districts)
     train_districts = train_val_districts[len(train_val_districts)//5:]
@@ -72,7 +95,7 @@ if __name__ == "__main__":
   margin = 2 * np.sqrt(2) * 1500
 
   india_df = load_processed_data()
-  folds = stratify_kfold(india_df)
+  folds = stratify_by_state(india_df)
 
   for i, fold in enumerate(folds):
     print("Processing fold {}...".format(i+1))

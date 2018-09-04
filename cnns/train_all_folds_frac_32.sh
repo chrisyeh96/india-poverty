@@ -42,7 +42,7 @@ python3 train.py \
 
 python3 train.py \
   --verbose \
-  --epochs=15 \
+  --epochs=5 \
   --sat-type=s1 \
   --country=india \
   --log-epoch-interval=1 \
