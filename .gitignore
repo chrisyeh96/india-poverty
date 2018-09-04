@@ -1,9 +1,6 @@
 # Logs
-data/fold_1
-data/fold_2
-data/fold_3
-data/fold_4
-data/fold_5
+data/fold_*
+results/fold_*
 data/backup_folds
 data/bucket
 results/*.csv
