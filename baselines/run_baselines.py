@@ -58,20 +58,16 @@ if __name__ == "__main__":
 
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument("--label", type=str, default="secc_cons_per_cap_scaled")
-  arg_parser.add_argument("--name", type=str)
   arg_parser.add_argument("--frac", type=float, default=1.0)
-  arg_parser.add_argument("--save", action="store_true")
   args = arg_parser.parse_args()
 
   print_hr("Loading datasets and running baseline models...")
 
-  fold_results = []
+  for data_subdir in tqdm(range(1, 30)):
 
-  for data_subdir in tqdm(range(1, 5 + 1)):
-
-    india_train = pd.read_csv("../data/fold_{}/train.csv".format(data_subdir))
-    india_valid = pd.read_csv("../data/fold_{}/valid.csv".format(data_subdir))
-    india_test = pd.read_csv("../data/fold_{}/test.csv".format(data_subdir))
+    india_train = pd.read_csv("../data/fold_%d/train.csv" % data_subdir)
+    india_valid = pd.read_csv("../data/fold_%d/valid.csv" % data_subdir)
+    india_test = pd.read_csv("../data/fold_%d/test.csv"% data_subdir)
 
     india_train = india_train.sample(frac=args.frac)
     india_valid = india_valid.sample(frac=args.frac)
@@ -92,42 +88,39 @@ if __name__ == "__main__":
     preds = run_nightlight_models(X_train, X_valid, X_test,
                                   y_train, y_valid, y_test)
 
-    X_train = pd.concat([india_train["latitude"], india_train["longitude"]], axis=1)
-    X_valid = pd.concat([india_valid["latitude"], india_valid["longitude"]], axis=1)
-    X_test = pd.concat([india_test["latitude"], india_test["longitude"]], axis=1)
-    preds["knn"] = run_knn_model(X_train, X_valid, X_test,
-                                  y_train, y_valid, y_test)
-    preds["true"] = y_test
-    preds["district_idx"] = india_test["district_idx"]
-    preds["taluk_idx"] = india_test["taluk_idx"]
-    preds["fold"] = data_subdir
-    fold_results.append(pd.DataFrame(preds))
+    # X_train = pd.concat([india_train["latitude"], india_train["longitude"]], axis=1)
+    # X_valid = pd.concat([india_valid["latitude"], india_valid["longitude"]], axis=1)
+    # X_test = pd.concat([india_test["latitude"], india_test["longitude"]], axis=1)
+    # preds["knn"] = run_knn_model(X_train, X_valid, X_test,
+                                 # y_train, y_valid, y_test)
+    np.save("../results/fold_%d/y_pred_gbm.npy" % data_subdir, preds["gbm"])
+    np.save("../results/fold_%d/y_pred_ridge.npy" % data_subdir, preds["ridge"])
 
-  test_df = pd.concat(fold_results)
-  print_hr("KNN")
-  print("R2: %.3f" % r2_score(test_df["true"], test_df["knn"]))
-  print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
-                              test_df.groupby("taluk_idx")["knn"].mean()))
-  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
-                              test_df.groupby("district_idx")["knn"].mean()))
-  print_hr("Ridge")
-  print("R2: %.3f" % r2_score(test_df["true"], test_df["ridge"]))
-  print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
-                              test_df.groupby("taluk_idx")["ridge"].mean()))
-  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
-                              test_df.groupby("district_idx")["ridge"].mean()))
-  print_hr("GBM")
-  print("R2: %.3f" % r2_score(test_df["true"], test_df["gbm"]))
-  print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
-                              test_df.groupby("taluk_idx")["gbm"].mean()))
-  print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
-                              test_df.groupby("district_idx")["gbm"].mean()))
-  print_hr("GBM no outliers")
-  print("R2: %.3f" % r2_score(test_df["true"][test_df["true"] < 3],
-                              test_df["knn"][test_df["true"] < 3]))
-
-
-  if args.label == "secc_pov_rate":
-    test_df.to_csv("./baseline_results_pov_rate.csv")
-  else:
-    test_df.to_csv("./baseline_results.csv")
+  # test_df = pd.concat(fold_results)
+  # print_hr("KNN")
+  # print("R2: %.3f" % r2_score(test_df["true"], test_df["knn"]))
+  # print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
+  #                             test_df.groupby("taluk_idx")["knn"].mean()))
+  # print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
+  #                             test_df.groupby("district_idx")["knn"].mean()))
+  # print_hr("Ridge")
+  # print("R2: %.3f" % r2_score(test_df["true"], test_df["ridge"]))
+  # print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
+  #                             test_df.groupby("taluk_idx")["ridge"].mean()))
+  # print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
+  #                             test_df.groupby("district_idx")["ridge"].mean()))
+  # print_hr("GBM")
+  # print("R2: %.3f" % r2_score(test_df["true"], test_df["gbm"]))
+  # print("R2: %.3f" % r2_score(test_df.groupby("taluk_idx")["true"].mean(),
+  #                             test_df.groupby("taluk_idx")["gbm"].mean()))
+  # print("R2: %.3f" % r2_score(test_df.groupby("district_idx")["true"].mean(),
+  #                             test_df.groupby("district_idx")["gbm"].mean()))
+  # print_hr("GBM no outliers")
+  # print("R2: %.3f" % r2_score(test_df["true"][test_df["true"] < 3],
+  #                             test_df["knn"][test_df["true"] < 3]))
+  #
+  #
+  # if args.label == "secc_pov_rate":
+  #   test_df.to_csv("./baseline_results_pov_rate.csv")
+  # else:
+  #   test_df.to_csv("./baseline_results.csv")

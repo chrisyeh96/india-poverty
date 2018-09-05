@@ -145,16 +145,11 @@ if __name__ == "__main__":
   print("No outliers:", metrics.r2_score(y_true_s1[y_true_s1 < 3], y_pred_joint[y_true_s1 < 3]))
   print("Correlation:", sp.stats.pearsonr(y_pred_l8, y_pred_s1))
 
-  if args.save_results and args.country == "india":
+  if args.save_results:
 
-    os.mkdir("../results/{}".format(args.model_name))
+    if not os.path.exists("../results/{}".format(args.model_name)):
+      os.mkdir("../results/{}".format(args.model_name))
     np.save("../results/{}/y_true.npy".format(args.model_name), y_true_s1)
     np.save("../results/{}/y_pred_l8.npy".format(args.model_name), y_pred_l8)
     np.save("../results/{}/y_pred_s1.npy".format(args.model_name), y_pred_s1)
 
-  if args.save_results and args.country == "bangladesh":
-
-    os.mkdir("../results/bangladesh")
-    np.save("../results/bangladesh/y_true.npy", y_true_s1)
-    np.save("../results/bangladesh/y_pred_l8.npy", y_pred_l8)
-    np.save("../results/bangladesh/y_pred_s1.npy", y_pred_s1)
