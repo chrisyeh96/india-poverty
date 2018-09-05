@@ -18,6 +18,7 @@ main = function() {
               "and", length(unique(survey_data$village_id)), "unique ids."))
 
   india_data = read_csv("../data/india.csv")
+  india_data$daily_exp = log(india_data$secc_cons_per_cap_scaled / 365.25 / 16.013)
   print(paste("Initial survey dataset had", nrow(india_data), "rows,",
               "and", length(unique(india_data$id)), "unique ids."))
 
@@ -27,14 +28,15 @@ main = function() {
   print(paste("Joined dataset had", nrow(join_data), "rows."))
   print(paste("Complete dataset had", nrow(complete), "rows."))
 
-  model = lm(electrification ~ secc_cons_per_cap_scaled, complete)
+  model = lm(electrification ~ daily_exp, complete)
+  print(model)
 
-  cors = c(elec=cor(complete$secc_cons_per_cap_scaled, complete$electrification),
-           paved=cor(complete$secc_cons_per_cap_scaled, complete$paved_road),
-           dist=cor(complete$secc_cons_per_cap_scaled, complete$distance_to_city),
-           ag=cor(complete$secc_cons_per_cap_scaled, complete$share_ag))
+  cors = c(elec=cor(complete$daily_exp, complete$electrification),
+           paved=cor(complete$daily_exp, complete$paved_road),
+           dist=cor(complete$daily_exp, complete$distance_to_city),
+           ag=cor(complete$daily_exp, complete$share_ag))
 
-  print("-- Correlations with scaled per capita income")
+  print("-- Correlations with log(scaled per capita income)")
   print(cors)
 }
 
