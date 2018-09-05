@@ -39,7 +39,7 @@ def stratify_by_state(df):
   Stratify by state into 36 folds.
   """
   result = []
-  union_territories = set([5, 7, 8, 17, 26, 1, 24])
+  union_territories = set([5, 7, 8, 17, 26, 0, 24, 30])
   for state_idx in range(min(df["state_idx"]), max(df["state_idx"]) + 1):
     if state_idx in union_territories:
       continue
