@@ -8,6 +8,7 @@ models/
 
 # Data files
 *.csv
+*.dta
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
