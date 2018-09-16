@@ -47,7 +47,7 @@ class SamplingLogger(object):
     self.mses = []
 
   def save(self, fold_idx):
-    pickle.dump(self, open("../results/fold_%d/sampling_%s.pkl" % (fold_idx, self.name), "wb"))
+    pickle.dump(self, open("../results/fold_%s/sampling_%s.pkl" % (fold_idx, self.name), "wb"))
 
 
 class CoeffSamplingLogger(object):
@@ -74,7 +74,7 @@ class CoeffSamplingLogger(object):
     self.coeffs_only_sampled = []
 
   def save(self, fold_idx):
-    pickle.dump(self, open("../results/fold_%d/coeff_sampling_%s.pkl" % (fold_idx, self.name), "wb"))
+    pickle.dump(self, open("../results/fold_%s/coeff_sampling_%s.pkl" % (fold_idx, self.name), "wb"))
 
 
 def greedy_selection(init_kernel, n_samples, X, y, chol_inv=False):
@@ -173,7 +173,7 @@ def sample_greedy_with_sat(df_train, df_val, n_reps=3):
       anisotropic_kernel, len(df_train) - 1,
       df_train.loc[:,("lat", "lng", "pred")].as_matrix(),
       np.array(df_train["true"] - df_train["pred"]), chol_inv=False)
-    for i in tqdm(range(1, len(df_train))):
+    for i in tqdm(range(1, len(df_train) - 1)):
       df_sampled = df_train.iloc[idxs[:i],:]
       df_rest = df_train.iloc[np.setdiff1d(idxs, idxs[:i]),:]
       gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
@@ -207,7 +207,7 @@ def sample_greedy_no_sat(df_train, df_val, n_reps=3):
       isotropic_kernel, len(df_train) - 1,
       df_train.loc[:,("lat", "lng")].as_matrix(),
       np.array(df_train["true"]), chol_inv=False)
-    for i in tqdm(range(1, len(df_train))):
+    for i in tqdm(range(1, len(df_train) - 1)):
       df_sampled = df_train.iloc[idxs[:i],:]
       df_rest = df_train.iloc[np.setdiff1d(idxs, idxs[:i]),:]
       gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
@@ -237,7 +237,7 @@ def sample_random_with_sat(df_train, df_val, n_reps=10):
   for _ in range(n_reps):
     idxs_random = np.arange(len(df_train))
     np.random.shuffle(idxs_random)
-    for i in tqdm(range(1, len(df_train))):
+    for i in tqdm(range(1, len(df_train) - 1)):
       df_sampled = df_train.iloc[idxs_random[:i],:]
       df_rest = df_train.iloc[np.setdiff1d(idxs_random, idxs_random[:i]),:]
       gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
@@ -267,7 +267,7 @@ def sample_random_no_sat(df_train, df_val, n_reps=10):
   for _ in range(n_reps):
     idxs_random = np.arange(len(df_train))
     np.random.shuffle(idxs_random)
-    for i in tqdm(range(1, len(df_train))):
+    for i in tqdm(range(1, len(df_train) - 1)):
       df_sampled = df_train.iloc[idxs_random[:i],:]
       df_rest = df_train.iloc[np.setdiff1d(idxs_random, idxs_random[:i]),:]
       gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
@@ -281,12 +281,12 @@ def sample_random_no_sat(df_train, df_val, n_reps=10):
 if __name__ == "__main__":
 
   arg_parser = ArgumentParser()
-  arg_parser.add_argument("--fold_idx", type=int, default=None)
+  arg_parser.add_argument("--fold_idx", type=str, default=None)
   args = arg_parser.parse_args()
   fold_idx = args.fold_idx
 
   electrification_data = pd.read_csv("../data/electrification.csv")
-  df = pd.read_csv("../results/fold_%d/test_results.csv" % fold_idx)
+  df = pd.read_csv("../results/fold_%s/test_results.csv" % fold_idx)
   print("Length of original test set: %d" % len(df))
 
   df = df.merge(electrification_data, how="inner", left_on="id", right_on="village_id")
@@ -317,5 +317,5 @@ if __name__ == "__main__":
   logs.save(fold_idx)
   coeff_logs.save(fold_idx)
 
-  df_train.to_csv("../results/fold_%d/sampling_train.csv" % fold_idx)
-  df_val.to_csv("../results/fold_%d/sampling_val.csv" % fold_idx)
+  df_train.to_csv("../results/fold_%s/sampling_train.csv" % fold_idx)
+  df_val.to_csv("../results/fold_%s/sampling_val.csv" % fold_idx)
