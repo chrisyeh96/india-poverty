@@ -1,10 +1,14 @@
 library(tidyverse)
+library(broom)
 library(haven)
 
 
-main = function() {
+setwd("~/Projects/predicting-poverty/src")
 
-  survey_data = read_stata("../data/pc0111_village_elec_road_dist_ag.dta")
+load_survey_data = function() {
+
+  survey_data = read_stata("data/pc0111_village_elec_road_dist_ag.dta")
+  join_keys = read_csv("data/join_keys.csv")
 
   survey_data = survey_data %>%
     mutate(village_id = as.integer(pc11_village_id),
@@ -17,27 +21,65 @@ main = function() {
   print(paste("Initial survey dataset had", nrow(survey_data), "rows,",
               "and", length(unique(survey_data$village_id)), "unique ids."))
 
-  india_data = read_csv("../data/india.csv")
-  india_data$daily_exp = log(india_data$secc_cons_per_cap_scaled / 365.25 / 16.013)
-  print(paste("Initial survey dataset had", nrow(india_data), "rows,",
+  survey_data = left_join(survey_data, join_keys,
+                           by=c("village_id" = "village_id"))
+  return(survey_data)
+}
+
+load_india_data = function() {
+
+  india_data = read_csv("data/india.csv")
+  india_data$daily_exp = india_data$secc_cons_per_cap_scaled / 365.25 / 16.013
+
+  print(paste("Initial India dataset had", nrow(india_data), "rows,",
               "and", length(unique(india_data$id)), "unique ids."))
+  return(india_data)
+}
 
-  join_data = inner_join(survey_data, india_data, by = c("village_id" = "id"))
+run_analyses = function(df) {
+
+  cors = c(elec=cor(df$daily_exp, df$electrification),
+           paved=cor(df$daily_exp, df$paved_road),
+           dist=cor(df$daily_exp, df$distance_to_city),
+           ag=cor(df$daily_exp, df$share_ag))
+
+  print("-- Correlations with scaled per capita income")
+  print(cors)
+
+  coeffs_by_state = df %>%
+    group_by(state_id) %>%
+    summarise(beta_weighted = coef(lm(daily_exp ~ electrification, weight = secc_pop))[2],
+              beta_unweighted = coef(lm(daily_exp ~ electrification))[2],
+              rho = cor(daily_exp, electrification),
+              n_village = length(daily_exp),
+              delta = mean(daily_exp[electrification == 1]) -
+                      mean(daily_exp[electrification == 0]))
+  plot(coeffs_by_state$beta_weighted, coeffs_by_state$n_village)
+  plot(coeffs_by_state$beta_unweighted, coeffs_by_state$n_village)
+  plot(coeffs_by_state$rho, coeffs_by_state$n_village)
+  plot(coeffs_by_state$delta, coeffs_by_state$n_village)
+
+}
+
+main = function() {
+
+  survey_data = load_survey_data()
+  india_data = load_india_data()
+
+  join_data = left_join(india_data, survey_data, by = c("id" = "id"))
+
+  print(paste("Sanity check: electrification has correlation of",
+              cor(join_data$secc_cons_per_cap_scaled, join_data$electrification,
+                  use="pairwise.complete.obs")))
+
   complete = join_data %>% na.omit
-
   print(paste("Joined dataset had", nrow(join_data), "rows."))
   print(paste("Complete dataset had", nrow(complete), "rows."))
 
-  model = lm(electrification ~ daily_exp, complete)
-  print(model)
+  run_analyses(complete)
 
-  cors = c(elec=cor(complete$daily_exp, complete$electrification),
-           paved=cor(complete$daily_exp, complete$paved_road),
-           dist=cor(complete$daily_exp, complete$distance_to_city),
-           ag=cor(complete$daily_exp, complete$share_ag))
-
-  print("-- Correlations with log(scaled per capita income)")
-  print(cors)
+  write_csv(complete %>% mutate(id=village_id) %>% select(village_id, electrification, daily_exp),
+            "data/electrification.csv")
 }
 
 main()
