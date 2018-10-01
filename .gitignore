@@ -1,9 +1,8 @@
 # Logs
 data/fold_*
 results/fold_*
-data/backup_folds
-data/bucket
-results/*.csv
+data/village_shape_files/
+data/bucket/
 models/
 
 # Data files
