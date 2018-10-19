@@ -6,88 +6,16 @@ import pickle
 from argparse import ArgumentParser
 from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.metrics import r2_score, mean_squared_error
 from scipy.linalg import cholesky
 from scipy.linalg import solve_triangular
 from tqdm import tqdm
+from utils import anisotropic_kernel, isotropic_kernel, SamplingLogger, \
+                  get_taluk_df, MAX_N_SAMPLES
+
 
 np.random.seed(123)
+np.warnings.filterwarnings('ignore')
 
-
-class SubspaceRBF(RBF):
-
-  def __init__(self, dims, length_scale=1.0, length_scale_bounds=(1e-5, 1e5)):
-    super(SubspaceRBF, self).__init__(length_scale, length_scale_bounds)
-    self.dims = dims
-
-  def __call__(self, X, Y=None, eval_gradient=False):
-    if Y is None:
-      return super(SubspaceRBF, self).__call__(X[:,self.dims], None,
-                                               eval_gradient=eval_gradient)
-    else:
-      return super(SubspaceRBF, self).__call__(X[:,self.dims], Y[:,self.dims],
-                                               eval_gradient=eval_gradient)
-
-
-isotropic_kernel = WhiteKernel() + \
-                   RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3))
-
-anisotropic_kernel = WhiteKernel() + \
-                     SubspaceRBF(dims=np.array([0, 1]), length_scale=1.0,
-                                 length_scale_bounds=(1e-3, 1e3)) + \
-                     SubspaceRBF(dims=np.array([2]), length_scale=1.0,
-                                 length_scale_bounds=(1e-3, 1e3))
-
-class SamplingLogger(object):
-
-  def __init__(self, name):
-    self.name = name
-    self.r2s_matrix = []
-    self.mses_matrix = []
-    self.r2s = []
-    self.mses = []
-
-  def tick(self, df_val, preds):
-    self.r2s.append(r2_score(df_val["true"], preds))
-    self.mses.append(mean_squared_error(df_val["true"], preds))
-
-  def clear_run(self):
-    if self.r2s:
-      self.r2s_matrix.append(self.r2s)
-    if self.mses:
-      self.mses_matrix.append(self.mses)
-    self.r2s = []
-    self.mses = []
-
-  def save(self, fold_idx):
-    pickle.dump(self, open("../results/fold_%s/sampling_%s.pkl" % (fold_idx, self.name), "wb"))
-
-
-class CoeffSamplingLogger(object):
-
-  def __init__(self, name):
-    self.name = name
-    self.coeffs_matrix = []
-    self.coeffs_matrix_only_sampled = []
-    self.coeffs = []
-    self.coeffs_only_sampled = []
-
-  def tick(self, df_sampled, df_rest, preds):
-    preds = np.r_[preds, df_sampled["true"]]
-    elec = np.r_[df_rest["electrification"], df_sampled["electrification"]]
-    self.coeffs.append(np.polyfit(preds, elec, deg=1)[0])
-    self.coeffs_only_sampled.append(np.polyfit(df_sampled["true"], df_sampled["electrification"], deg=1)[0])
-
-  def clear_run(self):
-    if self.coeffs:
-      self.coeffs_matrix.append(self.coeffs)
-    if self.coeffs_only_sampled:
-      self.coeffs_matrix_only_sampled.append(self.coeffs_only_sampled)
-    self.coeffs = []
-    self.coeffs_only_sampled = []
-
-  def save(self, fold_idx):
-    pickle.dump(self, open("../results/fold_%s/coeff_sampling_%s.pkl" % (fold_idx, self.name), "wb"))
 
 
 def greedy_selection(init_kernel, n_samples, X, y, chol_inv=False):
@@ -138,7 +66,11 @@ def greedy_selection(init_kernel, n_samples, X, y, chol_inv=False):
 
     for idx, j in enumerate(sorted(list(remaining_indices))):
 
-      cov_AbarAbar = kernel(X[np.array(sorted(list(remaining_indices - set([j])))),:])
+      try:
+        cov_AbarAbar = kernel(X[np.array(sorted(list(remaining_indices - set([j])))),:])
+      except:
+        import pdb
+        pdb.set_trace()
       if chol_inv:
         chol = np.linalg.cholesky(cov_AbarAbar)
         inv_chol = scipy.linalg.solve_triangular(chol, np.identity(chol.shape[0]))
@@ -166,11 +98,12 @@ def sample_greedy_with_sat(df_train, df_val, n_reps=5):
   """
   Sample greedily, building on top of satellite predictions.
   """
+  print("== Sampling greedily with satellite predictions...")
   logger = SamplingLogger("greedy_sat")
-  coeff_logger = CoeffSamplingLogger("greedy_sat")
   for _ in range(n_reps):
+    n_samples = min(len(df_train) - 1, MAX_N_SAMPLES)
     idxs = greedy_selection(
-      anisotropic_kernel, len(df_train) - 1,
+      anisotropic_kernel, n_samples,
       df_train.loc[:,("lat", "lng", "pred")].values,
       np.array(df_train["true"] - df_train["pred"]), chol_inv=False)
     for i in tqdm(range(1, len(idxs))):
@@ -180,32 +113,18 @@ def sample_greedy_with_sat(df_train, df_val, n_reps=5):
       preds = gp.predict(df_val.loc[:,("lat", "lng")]) + df_val["pred"]
       logger.tick(df_val, preds)
     logger.clear_run()
-#  df_train = pd.concat([df_train, df_val], axis=0)
-#  for _ in range(n_reps):
-#    n_samples = min(len(df_train) - 1, 1000)
-#    idxs = greedy_selection(
-#      anisotropic_kernel, n_samples,
-#      df_train.loc[:,("lat", "lng", "pred")].values,
-#      np.array(df_train["true"] - df_train["pred"]), chol_inv=False)
-#    for i in tqdm(range(1, n_samples)):
-#      df_sampled = df_train.iloc[idxs[:i],:]
-#      df_rest = df_train.iloc[np.setdiff1d(idxs, idxs[:i]),:]
-#      gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
-#      gp.fit(df_sampled.loc[:,("lat", "lng")], df_sampled["true"] - df_sampled["pred"])
-#      preds = df_rest["pred"] + gp.predict(df_rest.loc[:,("lat", "lng")])
-#      coeff_logger.tick(df_sampled, df_rest, preds)
-#    coeff_logger.clear_run()
-  return logger, coeff_logger
+  return logger
 
 def sample_greedy_no_sat(df_train, df_val, n_reps=5):
   """
   Sample greedily, without building on satellite predictions.
   """
+  print("== Sampling greedily without satellite predictions...")
   logger = SamplingLogger("greedy_nosat")
-  coeff_logger = CoeffSamplingLogger("greedy_nosat")
   for _ in range(n_reps):
+    n_samples = min(len(df_train) - 1, MAX_N_SAMPLES)
     idxs = greedy_selection(
-      isotropic_kernel, len(df_train) - 1,
+      isotropic_kernel, n_samples,
       df_train.loc[:,("lat", "lng")].values,
       np.array(df_train["true"]), chol_inv=False)
     for i in tqdm(range(1, len(idxs))):
@@ -215,95 +134,46 @@ def sample_greedy_no_sat(df_train, df_val, n_reps=5):
       preds = gp.predict(df_val.loc[:,("lat", "lng")])
       logger.tick(df_val, preds)
     logger.clear_run()
-#  df_train = pd.concat([df_train, df_val], axis=0)
-#  for _ in range(n_reps):
-#    n_samples = min(len(df_train) - 1, 1000)
-#    idxs = greedy_selection(
-#      isotropic_kernel, n_samples,
-#      df_train.loc[:,("lat", "lng")].values,
-#      np.array(df_train["true"]), chol_inv=False)
-#    for i in tqdm(range(1, n_samples)):
-#      df_sampled = df_train.iloc[idxs[:i],:]
-#      df_rest = df_train.iloc[np.setdiff1d(idxs, idxs[:i]),:]
-#      gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
-#      gp.fit(df_sampled.loc[:,("lat", "lng")], df_sampled["true"])
-#      preds = gp.predict(df_rest.loc[:,("lat", "lng")])
-#      coeff_logger.tick(df_sampled, df_rest, preds)
-#    coeff_logger.clear_run()
-  return logger, coeff_logger
+  return logger
 
 def sample_random_with_sat(df_train, df_val, n_reps=10):
   """
   Randomly sample, building on top of satellite predictions.
   """
+  print("== Sampling randomly with satellite predictions...")
   logger = SamplingLogger("random_sat")
-  coeff_logger = CoeffSamplingLogger("random_sat")
   for _ in range(n_reps):
     idxs_random = np.arange(len(df_train))
     np.random.shuffle(idxs_random)
-    for i in tqdm(range(1, len(df_train))):
+    n_samples = min(len(df_train) - 1, MAX_N_SAMPLES)
+    for i in tqdm(range(1, n_samples)):
       df_sampled = df_train.iloc[idxs_random[:i],:]
       gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
       gp.fit(df_sampled.loc[:,("lat", "lng")], df_sampled["true"] - df_sampled["pred"])
       preds = df_val["pred"] + gp.predict(df_val.loc[:,("lat", "lng")])
       logger.tick(df_val, preds)
     logger.clear_run()
-#  df_train = pd.concat([df_train, df_val], axis=0)
-#  for _ in range(n_reps):
-#    idxs_random = np.arange(len(df_train))
-#    np.random.shuffle(idxs_random)
-#    n_samples = min(len(df_train) - 1, 1000)
-#    for i in tqdm(range(1, n_samples)):
-#      df_sampled = df_train.iloc[idxs_random[:i],:]
-#      df_rest = df_train.iloc[np.setdiff1d(idxs_random, idxs_random[:i]),:]
-#      gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
-#      gp.fit(df_sampled.loc[:,("lat", "lng")], df_sampled["true"] - df_sampled["pred"])
-#      preds = df_rest["pred"] + gp.predict(df_rest.loc[:,("lat", "lng")])
-#      coeff_logger.tick(df_sampled, df_rest, preds)
-#    coeff_logger.clear_run()
-  return logger, coeff_logger
+  return logger
 
 def sample_random_no_sat(df_train, df_val, n_reps=10):
   """
   Randomly sample, without building on top of satellite predictions.
   """
+  print("== Sampling randomly without satellite predictions...")
   logger = SamplingLogger("random_nosat")
-  coeff_logger = CoeffSamplingLogger("random_nosat")
   for _ in range(n_reps):
     idxs_random = np.arange(len(df_train))
     np.random.shuffle(idxs_random)
-    for i in tqdm(range(1, len(df_train))):
+    n_samples = min(len(df_train) - 1, MAX_N_SAMPLES)
+    for i in tqdm(range(1, n_samples)):
       df_sampled = df_train.iloc[idxs_random[:i],:]
       gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
       gp.fit(df_sampled.loc[:,("lat", "lng")], df_sampled["true"])
       preds = gp.predict(df_val.loc[:,("lat", "lng")])
       logger.tick(df_val, preds)
     logger.clear_run()
-#  df_train = pd.concat([df_train, df_val], axis=0)
-#  for _ in range(n_reps):
-#    idxs_random = np.arange(len(df_train))
-#    np.random.shuffle(idxs_random)
-#    n_samples = min(len(df_train) - 1, 1000)
-#   for i in tqdm(range(1, n_samples)):
-#      df_sampled = df_train.iloc[idxs_random[:i],:]
-#      df_rest = df_train.iloc[np.setdiff1d(idxs_random, idxs_random[:i]),:]
-#      gp = GaussianProcessRegressor(kernel=isotropic_kernel, normalize_y=True)
-#      gp.fit(df_sampled.loc[:,("lat", "lng")], df_sampled["true"])
-#      preds = gp.predict(df_rest.loc[:,("lat", "lng")])
-#      coeff_logger.tick(df_sampled, df_rest, preds)
-#    coeff_logger.clear_run()
-  return logger, coeff_logger
+  return logger
 
-
-def get_taluk_df(fold_df):
-  cols = []
-  for label in ["true", "pred", "electrification"]:
-    fold_df["tmp"] = fold_df[label] * fold_df["pop"]
-    col = fold_df.groupby("taluk_idx")["tmp"].sum() / fold_df.groupby("taluk_idx")["pop"].sum()
-    cols.append(col.rename(label))
-  cols.append(fold_df.groupby("taluk_idx")["lat"].mean())
-  cols.append(fold_df.groupby("taluk_idx")["lng"].mean())
-  return pd.concat(cols, axis=1).reset_index().rename(columns={"taluk_idx": "idx"})
 
 if __name__ == "__main__":
 
@@ -317,7 +187,8 @@ if __name__ == "__main__":
   print("Length of original test set: %d" % len(df))
 
   df = df.merge(electrification_data, how="inner", left_on="id", right_on="village_id")
-  df = df.loc[:,("smoothed", "true", "lat", "lng", "taluk_idx", "district_idx", "state_idx", "pop", "electrification")]
+  df = df.loc[:,("smoothed", "true", "lat", "lng", "taluk_idx",
+                 "district_idx", "state_idx", "pop", "electrification")]
   df = df.rename(columns={"smoothed": "pred"})
 
   print("Length of merged test set: %d" % len(df))
@@ -334,16 +205,11 @@ if __name__ == "__main__":
   df_train.to_csv("../results/fold_%s/sampling_train.csv" % fold_idx)
   df_val.to_csv("../results/fold_%s/sampling_val.csv" % fold_idx)
 
-  logs, coeff_logs = sample_random_with_sat(df_train, df_val)
+  logs = sample_random_with_sat(df_train, df_val)
   logs.save(fold_idx)
-#  coeff_logs.save(fold_idx)
-  logs, coeff_logs = sample_random_no_sat(df_train, df_val)
+  logs = sample_random_no_sat(df_train, df_val)
   logs.save(fold_idx)
-#  coeff_logs.save(fold_idx)
-  logs, coeff_logs = sample_greedy_with_sat(df_train, df_val)
+  logs = sample_greedy_with_sat(df_train, df_val)
   logs.save(fold_idx)
-#  coeff_logs.save(fold_idx)
-  logs, coeff_logs = sample_greedy_no_sat(df_train, df_val)
+  logs = sample_greedy_no_sat(df_train, df_val)
   logs.save(fold_idx)
-#  coeff_logs.save(fold_idx)
-
