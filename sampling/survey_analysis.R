@@ -48,17 +48,10 @@ run_analyses = function(df) {
 
   coeffs_by_state = df %>%
     group_by(state_id) %>%
-    summarise(beta_weighted = coef(lm(daily_exp ~ electrification, weight = secc_pop))[2],
-              beta_unweighted = coef(lm(daily_exp ~ electrification))[2],
-              rho = cor(daily_exp, electrification),
-              n_village = length(daily_exp),
-              delta = mean(daily_exp[electrification == 1]) -
-                      mean(daily_exp[electrification == 0]))
-  plot(coeffs_by_state$beta_weighted, coeffs_by_state$n_village)
-  plot(coeffs_by_state$beta_unweighted, coeffs_by_state$n_village)
-  plot(coeffs_by_state$rho, coeffs_by_state$n_village)
-  plot(coeffs_by_state$delta, coeffs_by_state$n_village)
+    summarise(rho = cor(daily_exp, electrification),
+              n_village = length(daily_exp))
 
+  plot(coeffs_by_state$rho, coeffs_by_state$n_village)
 }
 
 main = function() {
@@ -78,7 +71,9 @@ main = function() {
 
   run_analyses(complete)
 
-  write_csv(complete %>% mutate(id=village_id) %>% select(village_id, electrification, daily_exp),
+  write_csv(complete %>%
+              mutate(village_id=id) %>%
+              select(village_id, electrification, daily_exp),
             "data/electrification.csv")
 }
 
