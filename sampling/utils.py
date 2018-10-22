@@ -3,7 +3,8 @@ import pandas as pd
 import dill
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
+from sklearn.gaussian_process.kernels import ConstantKernel, RBF, DotProduct, \
+                                             WhiteKernel
 
 
 MAX_N_SAMPLES = 200
@@ -23,6 +24,24 @@ class SubspaceRBF(RBF):
         X[:,self.dims], None, eval_gradient=eval_gradient)
     else:
       return super(SubspaceRBF, self).__call__(
+        X[:,self.dims], Y[:,self.dims], eval_gradient=eval_gradient)
+
+
+class SubspaceDot(DotProduct):
+  """
+  Modification of the DotProduct kernel to only act on specified dimensions.
+  i.e. K(x, y) = sigma^2 x[dims] ^\top y[dims]
+  """
+  def __init__(self, dims, sigma_0=1.0, sigma_0_bounds=(1e-5, 1e5)):
+    super(SubspaceDot, self).__init__(sigma_0, sigma_0_bounds)
+    self.dims = dims
+
+  def __call__(self, X, Y=None, eval_gradient=False):
+    if Y is None:
+      return super(SubspaceDot, self).__call__(
+        X[:,self.dims], None, eval_gradient=eval_gradient)
+    else:
+      return super(SubspaceDot, self).__call__(
         X[:,self.dims], Y[:,self.dims], eval_gradient=eval_gradient)
 
 
@@ -88,6 +107,9 @@ def get_taluk_df(fold_df, labels=["true", "pred", "electrification"]):
   cols.append(fold_df.groupby("taluk_idx")["lng"].mean())
   return pd.concat(cols, axis=1).reset_index().rename(columns={"taluk_idx": "idx"})
 
+
+coeff_est_kernel = ConstantKernel() * SubspaceRBF(dims=np.array([0, 1])) + \
+                   ConstantKernel() * SubspaceRBF(dims=np.array([2]))
 
 isotropic_kernel = WhiteKernel() + \
                    RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3))

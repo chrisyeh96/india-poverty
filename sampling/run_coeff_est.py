@@ -9,7 +9,7 @@ from scipy.linalg import cholesky
 from scipy.linalg import solve_triangular
 from scipy.stats import pearsonr
 from tqdm import tqdm
-from utils import CoeffSamplingLogger, anisotropic_kernel, get_taluk_df, \
+from utils import CoeffSamplingLogger, coeff_est_kernel, get_taluk_df, \
                   MAX_N_SAMPLES
 
 np.random.seed(123)
@@ -26,17 +26,10 @@ def sample_greedy(df, n_reps=5, n_gp_samples=10):
       df_sampled = df.iloc[df.index.isin(idxs),:]
       df_rest = df.iloc[~df.index.isin(idxs),:]
       logger.tick(df_sampled)
-      gp = GaussianProcessRegressor(kernel=anisotropic_kernel, normalize_y=True)
-      gp.fit(df_sampled.loc[:,("lat", "lng", "pred")], df_sampled["true"] - df_sampled["pred"])
-      preds = gp.sample_y(df_rest.loc[:, ("lat", "lng", "pred")], n_samples = n_gp_samples) + \
-              df_rest["pred"][:, np.newaxis]
-      betas = np.zeros_like(preds)
-      for i in range(preds.shape[0]):
-        for j in range(preds.shape[1]):
-          elec = np.r_[df_sampled["electrification"], df_rest.iloc[i,:]["electrification"]]
-          cons = np.r_[df_sampled["true"], preds[i,j]]
-          betas[i,j] = pearsonr(elec, cons)[0]
-      idx = df_rest.index[np.argmax(np.std(betas, axis=1))]
+      gp = GaussianProcessRegressor(kernel=coeff_est_kernel, normalize_y=True)
+      gp.fit(df_sampled.loc[:,("lat", "lng", "electrification")], df_sampled["true"])
+      preds = gp.sample_y(df_rest.loc[:, ("lat", "lng", "electrification")], n_samples = n_gp_samples)
+      idx = df_rest.index[np.argmax(np.std(preds, axis=1))]
       idxs.append(idx)
     logger.clear_run()
   return logger
@@ -66,6 +59,7 @@ if __name__ == "__main__":
   df_train = pd.read_csv("../results/fold_%s/sampling_train.csv" % fold_idx)
   df_val = pd.read_csv("../results/fold_%s/sampling_val.csv" % fold_idx)
   df = pd.concat([df_train, df_val]).reset_index()
+#  df["electrification"] -= np.mean(df["electrification"])
   print("Shape of aggregated test set:", df.shape)
 
   logs = sample_greedy(df)
