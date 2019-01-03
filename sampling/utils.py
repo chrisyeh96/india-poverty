@@ -109,7 +109,7 @@ def get_taluk_df(fold_df, labels=["true", "pred", "electrification"]):
 
 
 coeff_est_kernel = ConstantKernel() * SubspaceRBF(dims=np.array([0, 1])) + \
-                   ConstantKernel() * SubspaceRBF(dims=np.array([2]))
+                   ConstantKernel() * SubspaceDot(dims=np.array([2]))
 
 isotropic_kernel = WhiteKernel() + \
                    RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3))
@@ -117,5 +117,5 @@ isotropic_kernel = WhiteKernel() + \
 anisotropic_kernel = WhiteKernel() + \
                      SubspaceRBF(dims=np.array([0, 1]), length_scale=1.0,
                                  length_scale_bounds=(1e-3, 1e3)) + \
-                     SubspaceRBF(dims=np.array([2]), length_scale=1.0,
-                                 length_scale_bounds=(1e-3, 1e3))
+                     SubspaceDot(dims=np.array([2]), sigma_0=1.0,
+                                 sigma_0_bounds=(1e-3, 1e3))

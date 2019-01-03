@@ -16,7 +16,7 @@ np.random.seed(123)
 np.warnings.filterwarnings("ignore")
 
 
-def sample_greedy(df, n_reps=5, n_gp_samples=10):
+def sample_greedy(df, n_reps=5, n_gp_samples=30):
   print("== Sampling for coefficient estimation, greedily...")
   logger = CoeffSamplingLogger("greedy")
   for _ in range(n_reps):
@@ -27,8 +27,8 @@ def sample_greedy(df, n_reps=5, n_gp_samples=10):
       df_rest = df.iloc[~df.index.isin(idxs),:]
       logger.tick(df_sampled)
       gp = GaussianProcessRegressor(kernel=coeff_est_kernel, normalize_y=True)
-      gp.fit(df_sampled.loc[:,("lat", "lng", "electrification")], df_sampled["true"])
-      preds = gp.sample_y(df_rest.loc[:, ("lat", "lng", "electrification")], n_samples = n_gp_samples)
+      gp.fit(df_sampled.loc[:,("lat", "lng", "pred", "electrification")], df_sampled["true"])
+      preds = gp.sample_y(df_rest.loc[:, ("lat", "lng", "pred", "electrification")], n_samples = n_gp_samples)
       idx = df_rest.index[np.argmax(np.std(preds, axis=1))]
       idxs.append(idx)
     logger.clear_run()
@@ -59,7 +59,7 @@ if __name__ == "__main__":
   df_train = pd.read_csv("../results/fold_%s/sampling_train.csv" % fold_idx)
   df_val = pd.read_csv("../results/fold_%s/sampling_val.csv" % fold_idx)
   df = pd.concat([df_train, df_val]).reset_index()
-#  df["electrification"] -= np.mean(df["electrification"])
+  df["electrification"] -= np.mean(df["electrification"])
   print("Shape of aggregated test set:", df.shape)
 
   logs = sample_greedy(df)
