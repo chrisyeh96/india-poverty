@@ -9,11 +9,7 @@ from scipy.linalg import cholesky
 from scipy.linalg import solve_triangular
 from scipy.stats import pearsonr
 from tqdm import tqdm
-from utils import CoeffSamplingLogger, coeff_est_kernel, get_taluk_df, \
-                  MAX_N_SAMPLES
-
-np.random.seed(123)
-np.warnings.filterwarnings("ignore")
+from utils import CoeffSamplingLogger, coeff_est_kernel
 
 
 def sample_greedy(df, n_reps=5, n_gp_samples=30):

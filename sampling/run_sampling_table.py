@@ -56,19 +56,10 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     electrification_data = pd.read_csv("../data/electrification.csv")
-    df = pd.read_csv(f"../results/fold_{args.fold_idx}/test_results.csv")
+    df = pd.read_csv(f"../results/fold_india/test_results.csv")
     print("Running for state: ", df["state_name"][0])
     print(f"Length of original test set: {len(df)}")
-
-    df = df.merge(electrification_data, how="inner", 
-                  left_on="id", right_on="village_id")
-    df = df.loc[:,("smoothed", "true", "lat", "lng", "taluk_idx",
-                   "district_idx", "state_idx", "pop", "electrification")]
     df = df.rename(columns={"smoothed": "pred"})
-
-    print(f"Length of merged test set: {len(df)}")
-
-    df.to_csv(f"../results/fold_{args.fold_idx}/sampling_df.csv")
 
     logs = sample_random(df, "with_sat", args.max_samples, args.n_reps,
                          args.batch_size, args.tune_freq)
