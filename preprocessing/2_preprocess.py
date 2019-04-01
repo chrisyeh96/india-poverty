@@ -20,14 +20,14 @@ def load_dataset():
   """
   Load the India dataframe.
   """
-  india_df = pd.read_csv("../data/india.csv")
+  india_df = pd.read_csv("data/india_with_survey.csv")
   return india_df
 
 def load_disk_files():
   """
   Return a set of all imagery files presently on disk.
   """
-  return set([s.strip() for s in open("../data/disk_bucket.txt", "r").readlines()])
+  return set([s.strip() for s in open("data/disk_bucket.txt", "r").readlines()])
 
 def load_viirs_data(india_df, diameter=14):
   """
@@ -83,11 +83,11 @@ def load_state_data(india_df):
   """
   global _get_data_for_idx
 
-  state_shapes = shapefile.Reader("../data/india_shape_files/IND_adm1").shapes()
+  state_shapes = shapefile.Reader("data/india_shape_files/IND_adm1").shapes()
   state_polygons = [sgeom.shape(s.__geo_interface__) for s in state_shapes]
-  district_shapes = shapefile.Reader("../data/india_shape_files/IND_adm2").shapes()
+  district_shapes = shapefile.Reader("data/india_shape_files/IND_adm2").shapes()
   district_polygons = [sgeom.shape(s.__geo_interface__) for s in district_shapes]
-  taluk_shapes = shapefile.Reader("../data/india_shape_files/IND_adm3").shapes()
+  taluk_shapes = shapefile.Reader("data/india_shape_files/IND_adm3").shapes()
   taluk_polygons = [sgeom.shape(s.__geo_interface__) for s in taluk_shapes]
   district_centroids = [(p.centroid.x, p.centroid.y) for i, p in enumerate(district_polygons)]
   clustering = AgglomerativeClustering(n_clusters=100)
@@ -95,9 +95,9 @@ def load_state_data(india_df):
   district_idx_to_cluster_mapping = {i: c for i, c in enumerate(pred_clusters)}
   district_idx_to_cluster_mapping[-1] = -1
 
-  states_df = pd.read_csv("../data/india_shape_files/IND_adm1.csv")
-  districts_df = pd.read_csv("../data/india_shape_files/IND_adm2.csv")
-  taluks_df = pd.read_csv("../data/india_shape_files/IND_adm3.csv")
+  states_df = pd.read_csv("data/india_shape_files/IND_adm1.csv")
+  districts_df = pd.read_csv("data/india_shape_files/IND_adm2.csv")
+  taluks_df = pd.read_csv("data/india_shape_files/IND_adm3.csv")
   state_names = np.zeros(len(india_df), dtype=str)
   district_names = np.zeros(len(india_df), dtype=str)
   taluk_names = np.zeros(len(india_df), dtype=str)
@@ -169,4 +169,4 @@ if __name__ == "__main__":
   india_df = india_df[india_df["state_idx"] >= 0]
 
   print("Saving to CSV...")
-  india_df.to_csv("../data/india_processed.csv", index=False)
+  india_df.to_csv("data/india_processed.csv", index=False)
