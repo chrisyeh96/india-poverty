@@ -3,7 +3,7 @@ library(broom)
 library(haven)
 
 
-setwd("~/Projects/predicting-poverty/src")
+setwd("~/Projects/predicting-poverty")
 
 load_survey_data = function() {
 
