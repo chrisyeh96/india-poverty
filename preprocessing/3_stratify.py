@@ -14,8 +14,8 @@ def stratify_by_state(df):
     Stratify by state into 36 folds.
     """
     result = {}
-    union_territories = set([5, 7, 8, 17, 26, 0, 24, 30, 9, 20])
-    for state_idx in range(min(df["state_idx"]), max(df["state_idx"]) + 1):
+    union_territories = set([6, 8, 9, 18, 27, 1, 25, 10])
+    for state_idx in set(df["state_idx"]):
         if state_idx in union_territories:
             continue
         test = df[df["state_idx"] == state_idx]
@@ -74,12 +74,13 @@ if __name__ == "__main__":
 
     for state_idx, fold in folds.items():
 
-        if state_idx < 20:
+        if state_idx < 10:
             continue
 
         print(f"Processing fold for state {state_idx}...")
         base_dir = f"data/fold_{state_idx}"
         Path(base_dir).mkdir(parents=True, exist_ok=True)
+
         keep_train, keep_valid = filter_nearby_villages(fold, margin)
         fold["train"] = fold["train"][keep_train]
         fold["valid"] = fold["valid"][keep_valid]
@@ -87,11 +88,13 @@ if __name__ == "__main__":
         print("Valid below margin:", 1 - np.mean(keep_valid))
         np.save(f"{base_dir}/keep_train.npy", keep_train)
         np.save(f"{base_dir}/keep_valid.npy", keep_valid)
+
         label = pd.concat([fold["train"], fold["valid"]])["secc_cons_per_cap_scaled"]
         label = np.log(label)
         mu, std = np.mean(label), np.std(label)
         np.save(f"{base_dir}/mu.npy", mu)
         np.save(f"{base_dir}/std.npy", std)
+
         for k, v in fold.items():
             print(k, len(v))
             v["log_secc_cons_per_cap_scaled"] = (np.log(v["secc_cons_per_cap_scaled"]) - mu) / std

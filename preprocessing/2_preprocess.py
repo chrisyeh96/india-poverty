@@ -117,20 +117,19 @@ def load_state_data(india_df):
     with Pool(8) as pool:
         idxs = list(tqdm(pool.imap(_get_data_for_idx, range(len(india_df))),
                          total=len(india_df)))
-    cluster_idxs = np.array([district_idx_to_cluster_mapping[i] for i in district_idxs])
     state_idxs = np.array(idxs)[:,0]
     district_idxs = np.array(idxs)[:,1]
     taluk_idxs = np.array(idxs)[:,2]
+    cluster_idxs = np.array([district_idx_to_cluster_mapping[i] for i in district_idxs])
     state_names = np.array(states_df["NAME_1"][state_idxs].reset_index().iloc[:,1])
     state_names[state_idxs < 0] = ""
-    state_names = np.array(states_df["ID_1"][state_idxs].reset_index().iloc[:,1])
     state_idxs = np.array(states_df["ID_1"][state_idxs].reset_index().iloc[:,1])
     district_names = np.array(districts_df["NAME_2"][district_idxs].reset_index().iloc[:,1])
     district_names[district_idxs < 0] = ""
     district_idxs = np.array(districts_df["ID_2"][district_idxs].reset_index().iloc[:,1])
     taluk_names = np.array(taluks_df["NAME_3"][taluk_idxs].reset_index().iloc[:,1])
     taluk_names[taluk_idxs < 0] = ""
-    district_idxs = np.array(taluks_df["ID_3"][taluk_idxs].reset_index().iloc[:,1])
+    taluk_idxs = np.array(taluks_df["ID_3"][taluk_idxs].reset_index().iloc[:,1])
     return state_idxs, state_names, district_idxs, district_names, taluk_idxs, taluk_names, cluster_idxs
 
 
@@ -166,7 +165,7 @@ if __name__ == "__main__":
     india_df["cluster_idx"] = cluster_idxs
 
     # filter out missing states
-    india_df >>= mask(X.state_name != "")
+    india_df >>= mask(X.state_name.notnull())
 
     print("Saving to CSV...")
     india_df.to_csv("data/india_processed.csv", index=False)
