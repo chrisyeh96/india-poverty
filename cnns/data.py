@@ -10,15 +10,39 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image
 
+gdal.SetCacheMax(2 ** 30) # 1 GB
 
-gdal.SetCacheMax(2**30) # 1 GB
+
+sat_transforms = {
+    "l8": [transforms.CenterCrop(100)],
+    "s1": [transforms.CenterCrop(300)],
+    "train": [
+        transforms.Resize(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+    ],
+    "val": [
+        transforms.Resize(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+    ],
+}
+
+
+def get_dataloader(csv_path, root_dir, label, batch_size=128, train=True, frac=1.0):
+    dataset = IndiaDataset(csv_file=csv_path, root_dir=root_dir, label=label,
+                           train=train, frac=frac)
+    loader = DataLoader(dataset, batch_size=batch_size, num_workers=8,
+                        shuffle=train)
+    return loader
 
 
 class IndiaDataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, label,
-                 transform=None, target_transform=None,
-                 year=2015, frac=1.0):
+    def __init__(self, csv_file, root_dir, label, train=False, frac=1.0):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -29,8 +53,7 @@ class IndiaDataset(Dataset):
         self.df = pd.read_csv(csv_file)
         self.root_dir = root_dir
         self.label = label
-        self.transform = transform
-        self.target_transform = target_transform
+        self.train = train
         self.df = self.df[~np.isnan(self.df[self.label])]
         if frac < 1:
             self.df = self.df.sample(frac=frac, replace=False)
@@ -46,11 +69,20 @@ class IndiaDataset(Dataset):
         s1 = Image.fromarray(s1.transpose((1, 2, 0)))
         l8 = Image.fromarray(l8.transpose((1, 2, 0)))
         expenditure = self.df[self.label][idx]
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            expenditure = self.target_transform(expenditure)
-        return image, expenditure
+        if self.train:
+            s1 = transforms.ComposeTransform(sat_transforms["s1"] +
+                                             sat_transforms["train"])
+            l8 = transforms.ComposeTransform(sat_transforms["l8"] +
+                                             sat_transforms["train"])
+        else:
+            s1 = transforms.ComposeTransform(sat_transforms["s1"] +
+                                             sat_transforms["test"])
+            l8 = transforms.ComposeTransform(sat_transforms["l8"] +
+                                             sat_transforms["test"])
+        import pdb
+        pdb.set_trace()
+        img = s1 + l8 # todo
+        return , expenditure
 
 
 def load_india_tiff(root_dir, village_id, prefix="s1", imgtype="vis", quiet=True):

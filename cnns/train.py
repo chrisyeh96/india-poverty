@@ -22,55 +22,6 @@ use_gpu = torch.cuda.is_available()
 print("Using GPU:", use_gpu)
 
 
-def load_dataset(train_csv_path, val_csv_path, train_data_dir, val_data_dir,
-                 label, sat_type="s1", year=2015, batch_size=128,
-                 train_frac=1.0):
-    if sat_type == "s1":
-        sat_transforms = [transforms.CenterCrop(300), transforms.Resize(224)]
-    else:
-        sat_transforms = [transforms.CenterCrop(100), transforms.Resize(224)]
-    data_transforms = {
-        "train": transforms.Compose(sat_transforms + [
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-        ]),
-        "val": transforms.Compose(sat_transforms + [
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-        ]),
-    }
-
-    dataset = IndiaDataset
-    train_dataset = dataset(csv_file=train_csv_path,
-                            root_dir=train_data_dir,
-                            label=label,
-                            transform=data_transforms["train"],
-                            sat_type=sat_type, year=year, frac=train_frac)
-    val_dataset = dataset(csv_file=val_csv_path,
-                          root_dir=val_data_dir,
-                          label=label,
-                          transform=data_transforms["val"],
-                          sat_type=sat_type, year=year, frac=train_frac)
-
-    image_datasets = {
-        "train": train_dataset,
-        "val": val_dataset
-    }
-
-    dataloaders = {
-        "train": DataLoader(image_datasets["train"], batch_size=batch_size,
-                            num_workers=8, shuffle=True),
-        "val": DataLoader(image_datasets["val"], batch_size=batch_size,
-                          num_workers=8, shuffle=False)
-    }
-    dataset_sizes = {x: len(image_datasets[x]) for x in ["train", "val"]}
-    print("Dataset sizes", dataset_sizes)
-    return dataloaders, dataset_sizes
-
-
 def train_model(model, criterion, optimizer, dataloaders, dataset_sizes,
                 model_name, num_epochs=25, verbose=False, log_epoch_interval=1):
 
