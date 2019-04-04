@@ -14,7 +14,9 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import datasets, models, transforms
-from data import IndiaDataset
+
+from data import IndiaDataset, get_dataloader
+from model import CombinedImageryCNN
 
 
 home_dir = str(Path.home())
@@ -22,7 +24,7 @@ use_gpu = torch.cuda.is_available()
 print("Using GPU:", use_gpu)
 
 
-def train_model(model, criterion, optimizer, dataloaders, dataset_sizes,
+def train_model(model, criterion, optimizer, train_loader, val_loader,
                 model_name, num_epochs=25, verbose=False, log_epoch_interval=1):
 
     since = time.time()
@@ -34,6 +36,11 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes,
 
     losses = {"train": [], "val": []}
     r2s = {"train": [], "val": []}
+
+    dataloaders = {
+        "train": train_loader,
+        "val": val_loade
+    }
 
     scheduler = ReduceLROnPlateau(optimizer, "min", factor=0.1, patience=3, verbose=True)
 
@@ -95,6 +102,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes,
 
                 running_loss += loss.data[0]
 
+            breakpoint()
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_r2 = metrics.r2_score(y_true, y_pred)
 
@@ -154,7 +162,7 @@ if __name__ == "__main__":
             str(args.year), str(time.ctime()).replace(" ", "_"))
     else:
         model_name = args.name
-    os.mkdir(os.path.join(home_dir, "predicting-poverty/models", model_name))
+    Path(f"{home_dir}/predicting-poverty/models/{model_name}").mkdir(
 
     print(f"Train for {args.epochs} epochs")
     print(f"Batch size {args.batch_size}")
@@ -163,44 +171,33 @@ if __name__ == "__main__":
 
     train_data_dir = f"{home_dir}/imagery"
     val_data_dir = f"{home_dir}/imagery"
-
     train_csv_path = f"../data/{args.data_subdir}/train.csv"
     val_csv_path = f"../data/{args.data_subdir}/valid.csv"
 
-    dataloaders, dataset_sizes = load_dataset(train_csv_path, val_csv_path,
-                                              train_data_dir, val_data_dir, args.label,
-                                              sat_type=args.sat_type, year=args.year,
-                                              batch_size=args.batch_size, train_frac=args.train_frac)
-
-    model_conv = torchvision.models.resnet18(pretrained=True)
+    train_loader = get_dataloader(train_csv_path, train_data_dir, args.label,
+                                  batch_size=128, train=True, frac=1.0)
+    val_loader = get_dataloader(val_csv_path, val_data_dir, args.label,
+                                batch_size=128, train=True, frac=1.0)
 
     if args.preload_model:
         model_path = f"{home_dir}/predicting-poverty/models/{args.preload_model}/saved_model.model"
-        model_conv.load_state_dict(torch.load(model_path))
-
-    for param in model_conv.parameters():
-        param.requires_grad = False
-
-    num_ftrs = model_conv.fc.in_features
-    if args.label == "log_secc_cons_per_cap_scaled":
-        model_conv.fc = nn.Linear(num_ftrs, 1)
-        criterion = nn.MSELoss()
+        model = CombinedImageryCNN(initialize=False)
+        model.load_state_dict(torch.load(model_path))
     else:
-        model_conv.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-        criterion = nn.BCELoss()
+        model = CombinedImageryCNN(initialize=True)
 
     if use_gpu:
-        model_conv = model_conv.cuda()
+        model = model.cuda()
 
-    params = model_conv.parameters()
+    criterion = nn.MSELoss()
+    params = model.parameters()
     optimizer = optim.Adam(params, args.lr, weight_decay=args.weight_decay)
 
-    model_conv = train_model(model_conv, criterion, optimizer,
-                             model_name=model_name, num_epochs=args.epochs,
-                             dataloaders=dataloaders, dataset_sizes=dataset_sizes,
-                             verbose=args.verbose,
-                             log_epoch_interval=args.log_epoch_interval)
+    model = train_model(model, criterion, optimizer,
+                        model_name=model_name, num_epochs=args.epochs,
+                        train_loader=train_loader, val_loader=val_loader,
+                        verbose=args.verbose,
+                        log_epoch_interval=args.log_epoch_interval)
 
-    save_model_path = os.path.join(home_dir, "predicting-poverty/models/",
-                                   model_name, "saved_model.model")
-    torch.save(model_conv.state_dict(), save_model_path)
+    save_model_path = f"{home_dir}/predicting-poverty/models/{model_name}/saved_model.model"
+    torch.save(model.state_dict(), save_model_path)
