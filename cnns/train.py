@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 from sklearn import metrics
 from scipy.stats import pearsonr
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import datasets, models, transforms
@@ -39,7 +38,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,
 
     dataloaders = {
         "train": train_loader,
-        "val": val_loade
+        "val": val_loader
     }
 
     scheduler = ReduceLROnPlateau(optimizer, "min", factor=0.1, patience=3, verbose=True)
@@ -47,14 +46,14 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,
     def save_logs(epoch_no=None):
 
         epoch_prefix = str(epoch_no) if epoch_no else ""
-        base_dir = f"{home_dir}/predicting-poverty/models/{model_name}/{epoch_prefix}"
+        base_dir = f"models/{model_name}/{epoch_prefix}"
         Path(base_dir).mkdir(parents=True, exist_ok=True)
 
-        np.save(f"{base_dir}/y_pred.npy"), best_y_pred)
-        np.save(f"{base_dir}/y_true.npy"), best_y_true)
+        np.save(f"{base_dir}/y_pred.npy", best_y_pred)
+        np.save(f"{base_dir}/y_true.npy", best_y_true)
 
         for k, v in losses.items():
-            np.save(f"{basedir}/losses_{k}.npy", np.array(v))
+            np.save(f"{base_dir}/losses_{k}.npy", np.array(v))
         for k, v in r2s.items():
             np.save(f"{base_dir}/rsq_{k}.npy", np.array(v))
 
@@ -62,9 +61,9 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,
 
     for epoch in range(1, num_epochs + 1):
 
-        print("Epoch {}/{}".format(epoch, num_epochs))
+        print(f"Epoch {epoch}/{num_epochs}")
         print(time.ctime())
-        print("=" * 10)
+        print("=" * 79)
 
         for phase in ("train", "val"):
             y_true = []
@@ -76,34 +75,29 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,
 
             running_loss = 0.0
 
-            for i, data in enumerate(dataloaders[phase]):
+            for i, (inputs, labels) in enumerate(dataloaders[phase]):
 
-                inputs, labels = data
                 y_true += labels.numpy().tolist()
 
                 if use_gpu:
-                    inputs = Variable(inputs.cuda())
-                    labels = Variable(labels.float().cuda())
-                else:
-                    inputs, labels = Variable(inputs), Variable(labels.float())
+                    inputs, labels = inputs.cuda(), labels.cuda()
 
                 optimizer.zero_grad()
-                outputs = model(inputs)
+                outputs = model(inputs).squeeze()
                 preds = outputs.data
                 loss = criterion(outputs, labels)
 
-                y_pred += preds.squeeze().cpu().numpy().tolist()
+                y_pred += preds.cpu().numpy().tolist()
 
                 if phase == "train":
                     loss.backward()
                     optimizer.step()
                 if verbose:
-                    print("Batch", i, "Loss:", loss.data[0])
+                    print(f"Batch {i}\tLoss: {loss.data.item():.2f}")
 
-                running_loss += loss.data[0]
+                running_loss += loss.data.item()
 
-            breakpoint()
-            epoch_loss = running_loss / dataset_sizes[phase]
+            epoch_loss = running_loss / len(dataloaders[phase])
             epoch_r2 = metrics.r2_score(y_true, y_pred)
 
             losses[phase].append(epoch_loss)
@@ -117,11 +111,7 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,
                     best_r2 = epoch_r2
                     best_y_pred = y_pred
                     best_y_true = y_true
-                    if use_gpu:
-                        model.cpu()
                     best_model_wts = model.state_dict()
-                    if use_gpu:
-                        model.cuda()
 
             if verbose and epoch % log_epoch_interval == 0:
                 save_logs(epoch)
@@ -132,7 +122,6 @@ def train_model(model, criterion, optimizer, train_loader, val_loader,
     print("Best R2: {:4f}".format(best_r2))
 
     save_logs()
-    model.cpu()
     model.load_state_dict(best_model_wts)
     return model
 
@@ -143,12 +132,11 @@ if __name__ == "__main__":
 
     arg_parser.add_argument("--name", type=str, default=None)
     arg_parser.add_argument("--epochs", type=int, default=10)
-    arg_parser.add_argument("--year", type=int, default=2015)
     arg_parser.add_argument("--label", type=str, default="log_secc_cons_per_cap_scaled")
     arg_parser.add_argument("--train-frac", type=float, default=1.0)
     arg_parser.add_argument("--lr", type=float, default=1e-5)
     arg_parser.add_argument("--weight-decay", type=float, default=0)
-    arg_parser.add_argument("--batch-size", type=int, default=128)
+    arg_parser.add_argument("--batch-size", type=int, default=64)
     arg_parser.add_argument("--log-epoch-interval", type=int, default=1)
     arg_parser.add_argument("--preload-model", type=str, default=None)
     arg_parser.add_argument("--data-subdir", type=str, default=None)
@@ -157,22 +145,20 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     if not args.name:
-        model_name = "{}_{}".format(
-            args.sat_type,
-            str(args.year), str(time.ctime()).replace(" ", "_"))
+        model_name = f"{args.data_subdir}"
     else:
         model_name = args.name
-    Path(f"{home_dir}/predicting-poverty/models/{model_name}").mkdir(
+    Path(f"models/{model_name}").mkdir(exist_ok=True, parents=True)
 
     print(f"Train for {args.epochs} epochs")
     print(f"Batch size {args.batch_size}")
     print(f"Save best model in: ~/predicting-poverty/models/{model_name}")
-    print("====================================\n")
+    print("=" * 79 + "\n")
 
     train_data_dir = f"{home_dir}/imagery"
     val_data_dir = f"{home_dir}/imagery"
-    train_csv_path = f"../data/{args.data_subdir}/train.csv"
-    val_csv_path = f"../data/{args.data_subdir}/valid.csv"
+    train_csv_path = f"data/{args.data_subdir}/train.csv"
+    val_csv_path = f"data/{args.data_subdir}/valid.csv"
 
     train_loader = get_dataloader(train_csv_path, train_data_dir, args.label,
                                   batch_size=128, train=True, frac=1.0)
@@ -180,18 +166,20 @@ if __name__ == "__main__":
                                 batch_size=128, train=True, frac=1.0)
 
     if args.preload_model:
-        model_path = f"{home_dir}/predicting-poverty/models/{args.preload_model}/saved_model.model"
+        model_path = f"models/{args.preload_model}/saved_model.model"
         model = CombinedImageryCNN(initialize=False)
         model.load_state_dict(torch.load(model_path))
     else:
         model = CombinedImageryCNN(initialize=True)
 
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=args.lr,
+                           weight_decay=args.weight_decay)
+    if not args.preload_model:
+        model.initialize_weights()
+
     if use_gpu:
         model = model.cuda()
-
-    criterion = nn.MSELoss()
-    params = model.parameters()
-    optimizer = optim.Adam(params, args.lr, weight_decay=args.weight_decay)
 
     model = train_model(model, criterion, optimizer,
                         model_name=model_name, num_epochs=args.epochs,
@@ -199,5 +187,5 @@ if __name__ == "__main__":
                         verbose=args.verbose,
                         log_epoch_interval=args.log_epoch_interval)
 
-    save_model_path = f"{home_dir}/predicting-poverty/models/{model_name}/saved_model.model"
+    save_model_path = f"models/{model_name}/saved_model.model"
     torch.save(model.state_dict(), save_model_path)

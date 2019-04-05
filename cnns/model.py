@@ -3,27 +3,25 @@ import torch.nn as nn
 import pretrainedmodels
 
 
+def get_pretrained_firstconv_weights():
+    return torch.load("cnns/firstconv_weights.torch")
+
+
 class CombinedImageryCNN(nn.Module):
 
     def __init__(self, initialize=False):
         super().__init__()
-        if initialize:
-            base = pretrainedmodels.__dict__["se_resnext50_32x4d"](
-                num_classes=1000, pretrained="imagenet")
-            pretrained_conv_weight = model.layer0[0].weight
-            base.layer0[0] = nn.Conv2d(6, 64, kernel_size=(7, 7),
-                                       stride=(2, 2), padding=(3, 3),
-                                       bias=False)
-            base.layer0[0].weight[:,:3,:,:] = pretrained_conv_weight
-            base.layer0[0].weight[:,3:,:,:] = pretrained_conv_weight
-        else:
-            base = pretrainedmodels.__dict__["se_resnext50_32x4d"](
-                num_classes=1000, pretrained=None)
-            base.layer0[0] = nn.Conv2d(6, 64, kernel_size=(7, 7),
-                                       stride=(2, 2), padding=(3, 3),
-                                       bias=False)
-        self.base = base
-        self.final_fc = nn.Linear(base.linear.out_features, 1, bias=True)
+        self.base = pretrainedmodels.__dict__["resnet18"](num_classes=1000, 
+                pretrained="imagenet" if initialize else None)
+        self.base.conv1= nn.Conv2d(6, 64, kernel_size=(7, 7),
+                                   stride=(2, 2), padding=(3, 3),
+                                   bias=False)
+        self.final_fc = nn.Linear(self.base.last_linear.out_features, 1)
+
+
+    def initialize_weights(self):
+        weights = get_pretrained_firstconv_weights()
+        self.base.conv1.weight.data = torch.cat((weights, weights), dim=1)
 
     def forward(self, x):
         return self.final_fc(self.base(x))

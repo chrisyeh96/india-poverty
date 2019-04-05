@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import gdal
+import numpy as np
 import os
 import torch
 import pandas as pd
@@ -68,21 +69,19 @@ class IndiaDataset(Dataset):
         l8 = load_india_tiff(self.root_dir, hhid, "l8", "vis", quiet=True)
         s1 = Image.fromarray(s1.transpose((1, 2, 0)))
         l8 = Image.fromarray(l8.transpose((1, 2, 0)))
-        expenditure = self.df[self.label][idx]
+        expenditure = self.df[self.label][idx].astype(np.float32)
         if self.train:
-            s1 = transforms.ComposeTransform(sat_transforms["s1"] +
-                                             sat_transforms["train"])
-            l8 = transforms.ComposeTransform(sat_transforms["l8"] +
-                                             sat_transforms["train"])
+            s1_transform = transforms.Compose(sat_transforms["s1"] +
+                                              sat_transforms["train"])
+            l8_transform = transforms.Compose(sat_transforms["l8"] +
+                                              sat_transforms["train"])
         else:
-            s1 = transforms.ComposeTransform(sat_transforms["s1"] +
-                                             sat_transforms["test"])
-            l8 = transforms.ComposeTransform(sat_transforms["l8"] +
-                                             sat_transforms["test"])
-        import pdb
-        pdb.set_trace()
-        img = s1 + l8 # todo
-        return , expenditure
+            s1_transform = transforms.Compose(sat_transforms["s1"] +
+                                              sat_transforms["test"])
+            l8_transform = transforms.Compose(sat_transforms["l8"] +
+                                              sat_transforms["test"])
+        s1, l8 = s1_transform(s1), l8_transform(l8)
+        return torch.cat((s1, l8), dim=0), expenditure
 
 
 def load_india_tiff(root_dir, village_id, prefix="s1", imgtype="vis", quiet=True):
