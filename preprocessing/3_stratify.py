@@ -74,9 +74,6 @@ if __name__ == "__main__":
 
     for state_idx, fold in folds.items():
 
-        if state_idx < 10:
-            continue
-
         print(f"Processing fold for state {state_idx}...")
         base_dir = f"data/fold_{state_idx}"
         Path(base_dir).mkdir(parents=True, exist_ok=True)

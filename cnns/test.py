@@ -3,20 +3,14 @@ from __future__ import print_function, division
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import scipy as sp
-import torch.optim as optim
-import torchvision
 import argparse
 import os
 from sklearn import metrics
 from scipy.stats import pearsonr
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchvision import datasets, models, transforms
 from tqdm import tqdm
 from pathlib import Path
+from sklearn.metrics import r2_score
 from data import IndiaDataset, get_dataloader
 from model import CombinedImageryCNN
 
@@ -37,15 +31,15 @@ def test_model(model, dataloader):
     for i, data in tqdm(enumerate(dataloader), total=len(dataloader)):
 
         inputs, labels = data
-        y_true += labels.numpy().tolist()
 
         if use_gpu:
             inputs = inputs.cuda()
 
-        outputs = model(inputs).squeeze()
-        y_pred += outputs.data.cpu().numpy().tolist()
+        y_true += labels.numpy().tolist()
+        y_pred += model(inputs).squeeze().data.cpu().numpy().tolist()
+        final_layer += model.get_final_layer(inputs).data.cpu().numpy().tolist()
 
-    return y_true, y_pred
+    return np.array(y_true), np.array(y_pred), np.array(final_layer)
 
 
 if __name__ == "__main__":
@@ -63,21 +57,22 @@ if __name__ == "__main__":
     print(f"Batch size {args.batch_size}")
     print("=" * 79 + "\n")
 
-    test_csv_path = f"../data/{args.data_subdir}/test.csv"
+    test_csv_path = f"data/{args.data_subdir}/test.csv"
     data_dir = f"{home_dir}/imagery"
 
     test_loader = get_dataloader(test_csv_path, data_dir, args.label,
                                  batch_size=args.batch_size, train=False)
 
-    model_path = f"models/{args.preload_model}/saved_model.model"
+    model_path = f"models/{args.data_subdir}/saved_model.model"
     model = CombinedImageryCNN(initialize=False)
     model.load_state_dict(torch.load(model_path))
 
     if use_gpu:
         model = model.cuda()
 
-    y_true, y_pred = test_model(model, test_loader, args)
-
+    y_true, y_pred, final_layer = test_model(model, test_loader)
+    print(f"R2: {r2_score(y_true, y_pred)}")
     Path(f"results/{args.data_subdir}").mkdir(exist_ok=True, parents=True)
     np.save(f"results/{args.data_subdir}/y_true.npy", y_true)
     np.save(f"results/{args.data_subdir}/y_pred.npy", y_pred)
+    np.save(f"results/{args.data_subdir}/final_layer.npy", final_layer)

@@ -77,9 +77,9 @@ class IndiaDataset(Dataset):
                                               sat_transforms["train"])
         else:
             s1_transform = transforms.Compose(sat_transforms["s1"] +
-                                              sat_transforms["test"])
+                                              sat_transforms["val"])
             l8_transform = transforms.Compose(sat_transforms["l8"] +
-                                              sat_transforms["test"])
+                                              sat_transforms["val"])
         s1, l8 = s1_transform(s1), l8_transform(l8)
         return torch.cat((s1, l8), dim=0), expenditure
 

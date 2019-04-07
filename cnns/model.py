@@ -27,4 +27,4 @@ class CombinedImageryCNN(nn.Module):
         return self.final_fc(self.base(x))
 
     def get_final_layer(self, x):
-        self.base(x)
+        return self.base(x)

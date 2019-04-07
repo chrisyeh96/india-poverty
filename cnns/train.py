@@ -155,10 +155,10 @@ if __name__ == "__main__":
     val_csv_path = f"data/{args.data_subdir}/valid.csv"
 
     data_dir = f"{home_dir}/imagery"
-    train_loader = get_dataloader(train_csv_path, train_data_dir, args.label,
+    train_loader = get_dataloader(train_csv_path, data_dir, args.label,
                                   batch_size=args.batch_size, train=True)
-    val_loader = get_dataloader(val_csv_path, val_data_dir, args.label,
-                                batch_size=args.batch_size, train=True)
+    val_loader = get_dataloader(val_csv_path, data_dir, args.label,
+                                batch_size=args.batch_size, train=False)
 
     if args.preload_model:
         model_path = f"models/{args.preload_model}/saved_model.model"
