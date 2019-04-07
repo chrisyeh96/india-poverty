@@ -11,7 +11,7 @@ class CombinedImageryCNN(nn.Module):
 
     def __init__(self, initialize=False):
         super().__init__()
-        self.base = pretrainedmodels.__dict__["resnet18"](num_classes=1000, 
+        self.base = pretrainedmodels.__dict__["resnet18"](num_classes=1000,
                 pretrained="imagenet" if initialize else None)
         self.base.conv1= nn.Conv2d(6, 64, kernel_size=(7, 7),
                                    stride=(2, 2), padding=(3, 3),
@@ -25,3 +25,6 @@ class CombinedImageryCNN(nn.Module):
 
     def forward(self, x):
         return self.final_fc(self.base(x))
+
+    def get_final_layer(self, x):
+        self.base(x)

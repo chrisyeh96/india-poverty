@@ -136,18 +136,14 @@ if __name__ == "__main__":
     arg_parser.add_argument("--train-frac", type=float, default=1.0)
     arg_parser.add_argument("--lr", type=float, default=1e-5)
     arg_parser.add_argument("--weight-decay", type=float, default=0)
-    arg_parser.add_argument("--batch-size", type=int, default=64)
+    arg_parser.add_argument("--batch-size", type=int, default=128)
     arg_parser.add_argument("--log-epoch-interval", type=int, default=1)
     arg_parser.add_argument("--preload-model", type=str, default=None)
     arg_parser.add_argument("--data-subdir", type=str, default=None)
     arg_parser.add_argument("--verbose", action="store_true")
 
     args = arg_parser.parse_args()
-
-    if not args.name:
-        model_name = f"{args.data_subdir}"
-    else:
-        model_name = args.name
+    model_name = f"{args.data_subdir}"
     Path(f"models/{model_name}").mkdir(exist_ok=True, parents=True)
 
     print(f"Train for {args.epochs} epochs")
@@ -155,15 +151,14 @@ if __name__ == "__main__":
     print(f"Save best model in: ~/predicting-poverty/models/{model_name}")
     print("=" * 79 + "\n")
 
-    train_data_dir = f"{home_dir}/imagery"
-    val_data_dir = f"{home_dir}/imagery"
     train_csv_path = f"data/{args.data_subdir}/train.csv"
     val_csv_path = f"data/{args.data_subdir}/valid.csv"
 
+    data_dir = f"{home_dir}/imagery"
     train_loader = get_dataloader(train_csv_path, train_data_dir, args.label,
-                                  batch_size=128, train=True, frac=1.0)
+                                  batch_size=args.batch_size, train=True)
     val_loader = get_dataloader(val_csv_path, val_data_dir, args.label,
-                                batch_size=128, train=True, frac=1.0)
+                                batch_size=args.batch_size, train=True)
 
     if args.preload_model:
         model_path = f"models/{args.preload_model}/saved_model.model"

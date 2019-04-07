@@ -8,7 +8,6 @@ import scipy as sp
 import torch.optim as optim
 import torchvision
 import argparse
-import time
 import os
 from sklearn import metrics
 from scipy.stats import pearsonr
@@ -17,7 +16,9 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import datasets, models, transforms
 from tqdm import tqdm
-from data import BangladeshDataset, IndiaDataset
+from pathlib import Path
+from data import IndiaDataset, get_dataloader
+from model import CombinedImageryCNN
 
 
 home_dir = os.path.expanduser("~")
@@ -25,131 +26,58 @@ use_gpu = torch.cuda.is_available()
 print("Using GPU:", use_gpu)
 
 
-def load_dataset(test_csv_path, data_dir, country, label, sat_type="s1", year=2015, batch_size=128):
-  if sat_type == "s1":
-    sat_transforms = [transforms.CenterCrop(300), transforms.Resize(224)]
-  else:
-    sat_transforms = [transforms.CenterCrop(100), transforms.Resize(224)]
-  data_transforms = {
-    "test": transforms.Compose(sat_transforms + [
-      transforms.ToTensor(),
-      transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                           std=[0.229, 0.224, 0.225])
-    ]),
-  }
-  if country == "india":
-    dataset = IndiaDataset
-  else:
-    dataset = BangladeshDataset
-  test_dataset = dataset(csv_file=test_csv_path,
-                         root_dir=data_dir,
-                         label=label,
-                         transform=data_transforms["test"],
-                         sat_type=sat_type, year=year)
-  test_dataloader = DataLoader(test_dataset, batch_size=batch_size,
-                               num_workers=8, shuffle=False)
-  return test_dataloader
+def test_model(model, dataloader):
 
+    y_true = []
+    y_pred = []
+    final_layer = []
 
-def test_model(model, dataloader, args):
+    model.train(False)
 
-  y_true = []
-  y_pred = []
+    for i, data in tqdm(enumerate(dataloader), total=len(dataloader)):
 
-  model.train(False)
+        inputs, labels = data
+        y_true += labels.numpy().tolist()
 
-  for i, data in tqdm(enumerate(dataloader), total=len(dataloader)):
+        if use_gpu:
+            inputs = inputs.cuda()
 
-    inputs, labels = data
-    y_true += labels.numpy().tolist()
+        outputs = model(inputs).squeeze()
+        y_pred += outputs.data.cpu().numpy().tolist()
 
-    if use_gpu:
-      inputs = Variable(inputs.cuda())
-      labels = Variable(labels.float().cuda())
-    else:
-      inputs, labels = Variable(inputs), Variable(labels.float())
-
-    outputs = model(inputs)
-    y_pred += outputs.data.squeeze().cpu().numpy().tolist()
-
-  return y_true, y_pred
+    return y_true, y_pred
 
 
 if __name__ == "__main__":
 
-  arg_parser = argparse.ArgumentParser()
-  arg_parser.add_argument("--country", type=str, default="india")
-  arg_parser.add_argument("--label", type=str, default="secc_cons_per_cap_scaled")
-  arg_parser.add_argument("--batch-size", type=int, default=128)
-  arg_parser.add_argument("--data-subdir", type=str, default=None)
-  arg_parser.add_argument("--model-name", type=str, default=None)
-  arg_parser.add_argument("--verbose", action="store_true")
-  arg_parser.add_argument("--no-softmax", action="store_true")
-  arg_parser.add_argument("--save-results", action="store_true")
-  arg_parser.set_defaults(fine_tune=True)
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("--label", type=str, default="log_secc_cons_per_cap_scaled")
+    arg_parser.add_argument("--batch-size", type=int, default=64)
+    arg_parser.add_argument("--data-subdir", type=str, default=None)
+    arg_parser.add_argument("--verbose", action="store_true")
+    arg_parser.add_argument("--save-results", action="store_true")
+    arg_parser.set_defaults(fine_tune=True)
 
-  args = arg_parser.parse_args()
+    args = arg_parser.parse_args()
 
-  print("Begin testing for {}".format(args.country))
-  print("Batch size {}".format(args.batch_size))
-  print("====================================")
-  print()
+    print(f"Batch size {args.batch_size}")
+    print("=" * 79 + "\n")
 
-  data_dir = "{}/imagery".format(home_dir)
+    test_csv_path = f"../data/{args.data_subdir}/test.csv"
+    data_dir = f"{home_dir}/imagery"
 
-  if args.country == "india":
+    test_loader = get_dataloader(test_csv_path, data_dir, args.label,
+                                 batch_size=args.batch_size, train=False)
 
-    test_csv_path = "../data/{}/test.csv".format(args.data_subdir)
-    s1_data = load_dataset(test_csv_path, data_dir, "india", args.label, "s1", year=2015, batch_size=args.batch_size)
-    l8_data = load_dataset(test_csv_path, data_dir, "india", args.label, "l8", year=2015, batch_size=args.batch_size)
+    model_path = f"models/{args.preload_model}/saved_model.model"
+    model = CombinedImageryCNN(initialize=False)
+    model.load_state_dict(torch.load(model_path))
 
-  elif args.country == "bangladesh":
+    if use_gpu:
+        model = model.cuda()
 
-    test_csv_path = "../data/bangladesh_test.csv"
-    s1_data = load_dataset(test_csv_path, data_dir, "bangladesh", "totexp_m_pc", "s1", year=2015, batch_size=args.batch_size)
-    l8_data = load_dataset(test_csv_path, data_dir, "bangladesh", "totexp_m_pc", "l8", year=2015, batch_size=args.batch_size)
+    y_true, y_pred = test_model(model, test_loader, args)
 
-  model_s1 = torchvision.models.resnet18(pretrained=True)
-  num_ftrs = model_s1.fc.in_features
-  if args.label == "secc_cons_per_cap_scaled":
-    model_s1.fc = nn.Linear(num_ftrs, 1)
-  else:
-    model_s1.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-  model_path = "{}/predicting-poverty/models/{}_s1{}/saved_model.model".format(home_dir, args.model_name[:6], args.model_name[6:])
-  model_s1.load_state_dict(torch.load(model_path))
-
-  model_l8 = torchvision.models.resnet18(pretrained=True)
-  num_ftrs = model_l8.fc.in_features
-  if args.label == "secc_cons_per_cap_scaled":
-    model_l8.fc = nn.Linear(num_ftrs, 1)
-  else:
-    model_l8.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-  model_path = "{}/predicting-poverty/models/{}_l8{}/saved_model.model".format(home_dir, args.model_name[:6], args.model_name[6:])
-  model_l8.load_state_dict(torch.load(model_path))
-
-  if use_gpu:
-    model_s1 = model_s1.cuda()
-    model_l8 = model_l8.cuda()
-
-  y_true_s1, y_pred_s1 = test_model(model_s1, s1_data, args)
-  y_true_l8, y_pred_l8 = test_model(model_l8, l8_data, args)
-
-  y_true_s1, y_true_l8 = np.array(y_true_s1), np.array(y_true_l8)
-  y_pred_s1, y_pred_l8 = np.array(y_pred_s1), np.array(y_pred_l8)
-
-  y_pred_joint = np.mean(np.array([y_pred_s1, y_pred_l8]), axis=0)
-
-  print("S1:", metrics.r2_score(y_true_s1, y_pred_s1))
-  print("L8:", metrics.r2_score(y_true_l8, y_pred_l8))
-  print("Both:", metrics.r2_score(y_true_s1, y_pred_joint))
-  print("No outliers:", metrics.r2_score(y_true_s1[y_true_s1 < 3], y_pred_joint[y_true_s1 < 3]))
-  print("Correlation:", sp.stats.pearsonr(y_pred_l8, y_pred_s1))
-
-  if args.save_results:
-
-    if not os.path.exists("../results/{}".format(args.model_name)):
-      os.mkdir("../results/{}".format(args.model_name))
-    np.save("../results/{}/y_true.npy".format(args.model_name), y_true_s1)
-    np.save("../results/{}/y_pred_l8.npy".format(args.model_name), y_pred_l8)
-    np.save("../results/{}/y_pred_s1.npy".format(args.model_name), y_pred_s1)
-
+    Path(f"results/{args.data_subdir}").mkdir(exist_ok=True, parents=True)
+    np.save(f"results/{args.data_subdir}/y_true.npy", y_true)
+    np.save(f"results/{args.data_subdir}/y_pred.npy", y_pred)
