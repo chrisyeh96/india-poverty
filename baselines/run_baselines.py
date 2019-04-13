@@ -52,11 +52,17 @@ if __name__ == "__main__":
     arg_parser.add_argument("--label", type=str,
                             default="secc_cons_per_cap_scaled")
     arg_parser.add_argument("--frac", type=float, default=1.0)
+    arg_parser.add_argument("--data-subdir", default=0, type=int)
     args = arg_parser.parse_args()
 
     print_hr("Loading datasets and running baseline models...")
 
-    for data_subdir in tqdm(range(1, 30)):
+    if args.data_subdir:
+        folds = [args.data_subdir]
+    else:
+        folds = range(1, 30)
+
+    for data_subdir in folds:
 
         india_train = pd.read_csv("../data/fold_%d/train.csv" % data_subdir)
         india_valid = pd.read_csv("../data/fold_%d/valid.csv" % data_subdir)
