@@ -67,6 +67,8 @@ if __name__ == "__main__":
     model = CombinedImageryCNN(initialize=False)
     model.load_state_dict(torch.load(model_path))
 
+    final_layer_weight, final_layer_bias = model.get_final_layer_weights()
+
     if use_gpu:
         model = model.cuda()
 
@@ -76,3 +78,7 @@ if __name__ == "__main__":
     np.save(f"results/{args.data_subdir}/y_true.npy", y_true)
     np.save(f"results/{args.data_subdir}/y_pred.npy", y_pred)
     np.save(f"results/{args.data_subdir}/final_layer.npy", final_layer)
+    np.save(f"results/{args.data_subdir}/final_layer_weight.npy",
+            final_layer_weight)
+    np.save(f"results/{args.data_subdir}/final_layer_bias.npy",
+            final_layer_bias)
