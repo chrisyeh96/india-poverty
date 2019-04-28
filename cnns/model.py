@@ -30,4 +30,4 @@ class CombinedImageryCNN(nn.Module):
         return self.base(x)
 
     def get_final_layer_weights(self):
-        return self.final_fc.weight.data, self.final_fc.bias.data
+        return self.final_fc.weight.data[0], self.final_fc.bias.data
